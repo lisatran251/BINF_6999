@@ -4,7 +4,10 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-# How to run: python3 process2.py 
+# How to run: python3 process2.py DARTE-QM_primer_design.csv raw_results.csv 
+
+# Set the display.max_rows option to print all rows 
+pd.set_option('display.max_rows', None)
 
 # Function to get the reverse complement of a sequence
 def reverse_complement(seq):
@@ -73,4 +76,5 @@ nonmatch = results[results['Qualified?'] == 'No']
 # Save to separate csv files without the 'Qualified?' column
 match.drop(columns=['Qualified?']).to_csv('match.csv', index=False)
 nonmatch.drop(columns=['Qualified?']).to_csv('nonmatch.csv', index=False)
+
 

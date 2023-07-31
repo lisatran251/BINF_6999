@@ -10,7 +10,7 @@ import re
 # python3 -m venv ~/my_venv
 # source ~/my_venv/bin/activate
 # pip install pandas numpy biopython argparse
-# python3 fasta_file primer_file 
+# python3 process1.py fasta_file primer_file 
 
 def extract_products(input_file, primer_file):
     df = pd.read_csv(primer_file)
