@@ -129,16 +129,16 @@ def check_variant_match(row):
 merged_program_ab['Variant Match?'] = merged_program_ab.apply(check_variant_match, axis=1)
 merged_program_ab.to_csv('merged_prog_ab.csv', index=False)
 
-## Rows in program not in abricate
-# program_only = merged_program_ab[merged_program_ab['_merge'] == 'left_only']
+# Rows in program not in abricate
+program_only = merged_program_ab[merged_program_ab['_merge'] == 'left_only']
 # program_only.drop('_merge', axis=1).to_csv('program_only.csv', index=False)
 
-## Rows in abricate not in program
-# abricate_only = merged_program_ab[merged_program_ab['_merge'] == 'right_only']
+# Rows in abricate not in program
+abricate_only = merged_program_ab[merged_program_ab['_merge'] == 'right_only']
 # abricate_only.drop('_merge', axis=1).to_csv('abricate_only.csv', index=False)
 
-## Rows found in both progsram not in abricate
-# both_program_ab_result = merged_program_ab[merged_program_ab['_merge'] == 'both']
+# Rows found in both progsram not in abricate
+both_program_ab_result = merged_program_ab[merged_program_ab['_merge'] == 'both']
 # both_program_ab_result.drop('_merge', axis=1).to_csv('both_program_ab_result.csv', index=False)
 
 # ## Scenario 1: target gene found - explore variants, artifacts etc. 
