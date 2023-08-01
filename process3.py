@@ -141,15 +141,20 @@ abricate_only = merged_program_ab[merged_program_ab['_merge'] == 'right_only']
 both_program_ab_result = merged_program_ab[merged_program_ab['_merge'] == 'both']
 # both_program_ab_result.drop('_merge', axis=1).to_csv('both_program_ab_result.csv', index=False)
 
-# ## Scenario 1: target gene found - explore variants, artifacts etc. 
-# # Save the F_product to a fasta file
-# with open('F_product.fasta', 'w') as f:
-#     for index, row in results.iterrows():
-#         # Include target in identifier if it exists and is not NaN
-#         target = f"_{row['Target']}" if pd.notna(row['Target']) else ""
-#         f.write(f">{row['Record ID']}_{target}\n{row['F_Product']}\n")
+## Scenario 1: target gene found - explore variants, artifacts etc. 
+# Select rows from merged_program_ab where 'Gene Match?' = 'Yes' and 'Variant Match?' = 'No'
+filtered_merged_program_ab = merged_program_ab[(merged_program_ab['Gene Match?'] == 'Yes') & (merged_program_ab['Variant Match?'] == 'No')]
+print(filtered_merged_program_ab)
 
-# # # Run cdhit in Unix: cd-hit-est -i F_product.fasta -o cdhit_rs -c 0.9 -n 10 -d 0
+# Save the 'F_product' and 'originalSEQUENCE' to a fasta file
+with  open('variants.fasta', 'w') as f:
+    for index, row in filtered_merged_program_ab.iterrows():
+        f.write(f"seq_{index}_F_Product\n{row['F_Product']}\n")
+        f.write(f"seq_{index}_originalSEQUENCE\n{row['originalSEQUENCE']}\n")
+
+
+
+# # # Run cdhit in Unix: cd-hit-est -i variants.fasta -o cdhit_rs -c 0.9 -n 10 -d 0
 
 # ## Scenario 2: found in program not in abricate- re-run with lower %identity on abricate
 # # Create a set of all record IDs from the 'Record ID' column 
