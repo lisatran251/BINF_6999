@@ -28,7 +28,7 @@ def run_command(command):
         print(result.stdout)
 
 # Run abricate: abricate --db resfinder --quiet contigs_ex.fasta > abricate_results.csv
-run_command(['./run_abricate.sh'])
+# run_command(['./run_abricate.sh'])
 
 # Load the data
 primers = pd.read_csv('DARTE-QM_primer_design.csv')
@@ -36,7 +36,7 @@ results = pd.read_csv('final_result.csv')
 ab_results = pd.read_csv('abricate_results.csv', delimiter='\t')
 
 # Create a df for the final_result
-filtered_result = results[['Record ID','Start Primer','End Primer','Start Position','End Position','Length','F_Product','Target']]
+filtered_result = results[['Record ID', 'Length', 'Combination', 'F_Product', 'F_primer', 'R_primer', 'Target']]
 filtered_result = filtered_result.dropna(subset=['F_Product'])
 filtered_result = filtered_result.dropna(subset=['Target'])
 
@@ -44,7 +44,7 @@ filtered_result = filtered_result.dropna(subset=['Target'])
 ab_results['LENGTH'] = ab_results['END'] - ab_results['START']
 
 # Create a df for abricate_result
-ab_results = ab_results[['SEQUENCE', 'START','END', 'LENGTH', 'GENE','%IDENTITY']]
+ab_results = ab_results[['SEQUENCE', 'LENGTH', 'STRAND', 'GENE', '%COVERAGE', '%IDENTITY', 'ACCESSION', 'PRODUCT']]
 
 # Define a function that remove the last part from the primers 
 def shorten_target(s):
@@ -73,8 +73,7 @@ ab_results['prgGENE'] = ab_results['GENE'].apply(replace_chars)
 
 # Create a df that merges the abricate results and original results
 merged_program_ab = filtered_result.merge(ab_results, how='outer', left_on=['Record ID','shortTarget'], right_on=['SEQUENCE','prgGENE'], indicator=True)
-# merged_program_ab.to_csv('merged_prog_ab.csv', index=False)
-print(merged_program_ab)
+merged_program_ab.to_csv('merged_prog_ab.csv', index=False)
 
 # Rows in program not in abricate
 program_only = merged_program_ab[merged_program_ab['_merge'] == 'left_only']
