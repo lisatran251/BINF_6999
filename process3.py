@@ -90,8 +90,6 @@ def create_short_product(x):
 # Create 'shortProduct' column
 filtered_result['shortProduct'] = filtered_result['shortTarget'].apply(create_short_product)
 
-print(filtered_result)
-
 # Create a copy of primer df  
 filtered_primer = primers.copy()
 
@@ -109,19 +107,38 @@ ab_results['prgGENE'] = ab_results['GENE'].apply(replace_chars)
 ab_results['prgPRODUCT'] = ab_results['PRODUCT'].apply(replace_chars)
 
 # Create a df that merges the abricate results and original results
-merged_program_ab = filtered_result.merge(ab_results, how='outer', left_on=['Record ID','shortTarget'], right_on=['SEQUENCE','prgGENE'], indicator=True)
+merged_program_ab = filtered_result.merge(ab_results, how='outer', left_on=['Record ID','shortProduct'], right_on=['SEQUENCE','prgPRODUCT'], indicator=True)
+
+# Create 'Gene Match?' column
+merged_program_ab['Gene Match?'] = merged_program_ab.apply(lambda row: 'Yes' if row['shortProduct'] == row['prgPRODUCT'] else 'No', axis=1)
+
+# Create 'Variant Match?' column
+def check_variant_match(row):
+    if row['Gene Match?'] == 'Yes':
+        # Extract the trailing number from 'shortTarget' and 'prgGENE'
+        short_target_number = re.search(r'\d+$', row['shortTarget'])
+        prg_gene_number = re.search(r'\d+$', row['prgGENE'])
+        
+        if short_target_number is not None and prg_gene_number is not None and short_target_number.group() == prg_gene_number.group():
+            return 'Yes'
+        else:
+            return 'No'
+    else:
+        return 'No'
+
+merged_program_ab['Variant Match?'] = merged_program_ab.apply(check_variant_match, axis=1)
 merged_program_ab.to_csv('merged_prog_ab.csv', index=False)
 
-# Rows in program not in abricate
-program_only = merged_program_ab[merged_program_ab['_merge'] == 'left_only']
+## Rows in program not in abricate
+# program_only = merged_program_ab[merged_program_ab['_merge'] == 'left_only']
 # program_only.drop('_merge', axis=1).to_csv('program_only.csv', index=False)
 
-# Rows in abricate not in program
-abricate_only = merged_program_ab[merged_program_ab['_merge'] == 'right_only']
+## Rows in abricate not in program
+# abricate_only = merged_program_ab[merged_program_ab['_merge'] == 'right_only']
 # abricate_only.drop('_merge', axis=1).to_csv('abricate_only.csv', index=False)
 
-# Rows found in both progsram not in abricate
-both_program_ab_result = merged_program_ab[merged_program_ab['_merge'] == 'both']
+## Rows found in both progsram not in abricate
+# both_program_ab_result = merged_program_ab[merged_program_ab['_merge'] == 'both']
 # both_program_ab_result.drop('_merge', axis=1).to_csv('both_program_ab_result.csv', index=False)
 
 # ## Scenario 1: target gene found - explore variants, artifacts etc. 
