@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np 
 import sys
-from Bio import SeqIO 
+from Bio import SeqIO, Entrez 
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 import re
@@ -14,6 +14,9 @@ import subprocess
 
 # Set the display.max_rows option to print all rows 
 pd.set_option('display.max_rows', None)
+
+# Provide email to NCBI, maybe turn this into input value later
+Entrez.email = "thuyduye@uoguelph.ca"
 
 # Define the function that used to run multiple Shell script 
 def run_command(command):
@@ -46,6 +49,20 @@ ab_results['LENGTH'] = ab_results['END'] - ab_results['START']
 # Create a df for abricate_result
 ab_results = ab_results[['SEQUENCE', 'LENGTH', 'STRAND', 'GENE', '%COVERAGE', '%IDENTITY', 'ACCESSION', 'PRODUCT']]
 
+# Define a function to fetch sequences
+def fetch_sequence(accession):
+    try:
+        handle = Entrez.efetch(db='nucleotide', id=accession, rettype='fasta', retmode='text')
+        record = SeqIO.read(handle, 'fasta')
+        return str(record.seq)
+    except Exception as e:
+        print(f"Could not fetch the sequence for accession {accession}: {e}")
+        return None
+    
+# Apply the function to fetch sequences and add them to the df 
+ab_results['originalSEQUENCE'] = ab_results['ACCESSION'].apply(fetch_sequence)
+print(ab_results)
+
 # Define a function that remove the last part from the primers 
 def shorten_target(s):
     if ':' in s:
@@ -70,6 +87,9 @@ def replace_chars(s):
 
 # Apply the function to each string in the 'GENE' column
 ab_results['prgGENE'] = ab_results['GENE'].apply(replace_chars)
+
+# Apply the function to each string in the 'PRODUCT' column 
+ab_results['prgPRODUCT'] = ab_results['PRODUCT'].apply(replace_chars)
 
 # Create a df that merges the abricate results and original results
 merged_program_ab = filtered_result.merge(ab_results, how='outer', left_on=['Record ID','shortTarget'], right_on=['SEQUENCE','prgGENE'], indicator=True)
