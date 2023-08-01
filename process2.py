@@ -17,9 +17,11 @@ def reverse_complement(seq):
 # Load the data
 primers_file = sys.argv[1] 
 results_file = sys.argv[2] 
-
 primers = pd.read_csv(primers_file)
 results = pd.read_csv(results_file)
+
+# Assuming df is your DataFrame
+primers['target_gene'] = primers['target_gene'].str.replace('^cfrB', 'cfr_B', regex=True)
 
 # Fill 'F_primer' and 'R_primer' columns based on the value of 'Combination' column
 for i, row in results.iterrows():
