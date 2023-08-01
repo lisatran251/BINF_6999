@@ -61,7 +61,6 @@ def fetch_sequence(accession):
     
 # Apply the function to fetch sequences and add them to the df 
 ab_results['originalSEQUENCE'] = ab_results['ACCESSION'].apply(fetch_sequence)
-print(ab_results)
 
 # Define a function that remove the last part from the primers 
 def shorten_target(s):
@@ -74,6 +73,24 @@ def shorten_target(s):
 
 # Use the function to create the new column with shorter name 
 filtered_result['shortTarget'] = filtered_result['Target'].apply(shorten_target)
+
+# Function to create 'shortProduct'
+def create_short_product(x):
+    if ':' in x:
+        return x.split(':')[0].split('_')[0]
+    elif re.search(r'_\d+$', x):  # If ends with underscore and digits
+        return re.sub(r'_\d+$', '', x)
+    elif re.search(r'_-\w+_\d+$', x):  # If has pattern '_-word_digit'
+        return re.sub(r'_\d+$', '', x)
+    elif re.search(r'\d+$', x):  # If ends with digits
+        return re.sub(r'\d+$', '', x)
+    else:
+        return x
+
+# Create 'shortProduct' column
+filtered_result['shortProduct'] = filtered_result['shortTarget'].apply(create_short_product)
+
+print(filtered_result)
 
 # Create a copy of primer df  
 filtered_primer = primers.copy()
