@@ -6,6 +6,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 import re
 import subprocess 
+import traceback
 
 # How to run:
 # python3 -m venv ~/my_venv
@@ -16,7 +17,7 @@ import subprocess
 pd.set_option('display.max_rows', None)
 
 # Provide email to NCBI, maybe turn this into input value later
-Entrez.email = "thuyduye@uoguelph.ca"
+Entrez.email = "lisaa.tran2501@gmail.com"
 
 # Define the function that used to run multiple Shell script 
 def run_command(command):
@@ -34,7 +35,7 @@ def run_command(command):
 # run_command(['./run_abricate.sh'])
 
 # Load the data
-primers = pd.read_csv('DARTE-QM_primer_design.csv')
+primers = pd.read_csv('DARTE-QM_primer_design.csv') 
 results = pd.read_csv('final_result.csv')
 ab_results = pd.read_csv('abricate_results.csv', delimiter='\t')
 
@@ -57,6 +58,7 @@ def fetch_sequence(accession):
         return str(record.seq)
     except Exception as e:
         print(f"Could not fetch the sequence for accession {accession}: {e}")
+        # traceback.print_exc()
         return None
     
 # Apply the function to fetch sequences and add them to the df 
@@ -144,17 +146,18 @@ both_program_ab_result = merged_program_ab[merged_program_ab['_merge'] == 'both'
 ## Scenario 1: target gene found - explore variants, artifacts etc. 
 # Select rows from merged_program_ab where 'Gene Match?' = 'Yes' and 'Variant Match?' = 'No'
 filtered_merged_program_ab = merged_program_ab[(merged_program_ab['Gene Match?'] == 'Yes') & (merged_program_ab['Variant Match?'] == 'No')]
-print(filtered_merged_program_ab)
 
 # Save the 'F_product' and 'originalSEQUENCE' to a fasta file
-with  open('variants.fasta', 'w') as f:
+with  open('variants_F_Product.fasta', 'w') as f:
     for index, row in filtered_merged_program_ab.iterrows():
-        f.write(f"seq_{index}_F_Product\n{row['F_Product']}\n")
-        f.write(f"seq_{index}_originalSEQUENCE\n{row['originalSEQUENCE']}\n")
+        f.write(f">seq_{index}_F_Product\n{row['F_Product']}\n")
 
+with  open('variants_originalSEQUENCE.fasta', 'w') as f:
+    for index, row in filtered_merged_program_ab.iterrows():
+        f.write(f">seq_{index}_originalSEQUENCE\n{row['originalSEQUENCE']}\n")
 
-
-# # # Run cdhit in Unix: cd-hit-est -i variants.fasta -o cdhit_rs -c 0.9 -n 10 -d 0
+## Run cdhit in Unix: cd-hit-est -i variants.fasta -o cdhit_rs -c 0.9 -n 10 -d 0
+# The main reason is the product is very short while the sequence achieved using accession number is much longer. Therefore, when run cd-hit which based on the similarity between two sequences and the identiy % much be higher than 70%, therefore we may want to run BLAST instead.  
 
 # ## Scenario 2: found in program not in abricate- re-run with lower %identity on abricate
 # # Create a set of all record IDs from the 'Record ID' column 
