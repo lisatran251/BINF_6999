@@ -129,15 +129,17 @@ def check_variant_match(row):
         return 'No'
 
 merged_program_ab['Variant Match?'] = merged_program_ab.apply(check_variant_match, axis=1)
-merged_program_ab.to_csv('merged_prog_ab.csv', index=False)
+# merged_program_ab.to_csv('merged_prog_ab.csv', index=False)
 
 # Rows in program not in abricate
 program_only = merged_program_ab[merged_program_ab['_merge'] == 'left_only']
-# program_only.drop('_merge', axis=1).to_csv('program_only.csv', index=False)
+program_only = program_only.iloc[:, :9]
+program_only.to_csv('program_only.csv', index=False)
 
 # Rows in abricate not in program
 abricate_only = merged_program_ab[merged_program_ab['_merge'] == 'right_only']
-# abricate_only.drop('_merge', axis=1).to_csv('abricate_only.csv', index=False)
+abricate_only = abricate_only.iloc[:, 9:20]
+abricate_only.to_csv('abricate_only.csv', index=False)
 
 # Rows found in both progsram not in abricate
 both_program_ab_result = merged_program_ab[merged_program_ab['_merge'] == 'both']
@@ -160,39 +162,50 @@ with  open('variants_originalSEQUENCE.fasta', 'w') as f:
 # The main reason is the product is very short while the sequence achieved using accession number is much longer. Therefore, when run cd-hit which based on the similarity between two sequences and the identiy % much be higher than 70%, therefore we may want to run BLAST instead.  
 
 # ## Scenario 2: found in program not in abricate- re-run with lower %identity on abricate
-# # Create a set of all record IDs from the 'Record ID' column 
-# record_ids = program_only['Record ID'].tolist()
+# Create a set of all record IDs from the 'Record ID' column 
+record_ids = program_only['Record ID'].tolist()
 
-# # Read the contigs
-# fasta_seqs = SeqIO.parse(open('contigs_ex.fasta'), 'fasta')
+# Read the contigs
+fasta_seqs = SeqIO.parse(open('contigs_ex.fasta'), 'fasta')
 
-# # Create new fasta file that contains seqs only found by the program
-# with open("program_only.fasta", "w") as out_file:
-#     for fasta in fasta_seqs:
-#         name, sequence = fasta.id, str(fasta.seq)
-#         if name in record_ids:
-#             SeqIO.write(fasta, out_file, "fasta")
+# Create new fasta file that contains seqs only found by the program
+with open("program_only.fasta", "w") as out_file:
+    for fasta in fasta_seqs:
+        name, sequence = fasta.id, str(fasta.seq)
+        if name in record_ids:
+            SeqIO.write(fasta, out_file, "fasta")
 
-# # # Re-run Abricate with lower coverage: abricate --db resfinder --quiet --mincov 10 program_only.fasta > program_only_ab10_results.csv
-# # # run_command(['./run_abricate_10.sh'])
+# Re-run Abricate with lower coverage: abricate --db resfinder --quiet --mincov 10 program_only.fasta > program_only_ab10_results.csv
+run_command(['./run_abricate_10.sh'])
 
-# # Load files
-# program_only_ab10_results = pd.read_csv('program_only_ab10_results.csv', delimiter='\t')
+# Load files
+program_only_ab10_results = pd.read_csv('program_only_ab10_results.csv', delimiter='\t')
 
-# # Apply the function to each string in the 'GENE' column
-# program_only_ab10_results['prgGENE'] = program_only_ab10_results['GENE'].apply(replace_chars)
+# Apply the function to each string in the 'GENE' column
+program_only_ab10_results['prgGENE'] = program_only_ab10_results['GENE'].apply(replace_chars)
 
-# # Merge to find similar seqs between the ones program found and abricate (10% coverage) found
-# merged_program_only_ab10 = program_only[['Record ID','Target','shortTarget']].merge(program_only_ab10_results[['SEQUENCE','GENE','prgGENE']], how='outer', left_on=['Record ID','shortTarget'], right_on=['SEQUENCE','prgGENE'], indicator=True)
-# # merged_program_only_ab10.to_csv('merged_program_only_ab10_both_id_and_gene.csv', index=False)
+# Apply the function to each string in the 'PRODUCT' column 
+program_only_ab10_results['prgPRODUCT'] = program_only_ab10_results['PRODUCT'].apply(replace_chars)
 
-# # Print out df includes matches 
-# merged_program_only_ab10_match = merged_program_only_ab10[merged_program_only_ab10['_merge'] == 'both']
-# # merged_program_only_ab10_match.to_csv('merged_program_only_ab10_match.csv', index=False)
+# Merge to find similar seqs between the ones program found and abricate (10% coverage) found
+merged_program_only_ab10_results = program_only.merge(program_only_ab10_results, how='outer', left_on=['Record ID','shortProduct'], right_on=['SEQUENCE','prgPRODUCT'], indicator=True)
 
-# # Print out df includes non-matches 
-# merged_program_only_ab10_nonmatch = merged_program_only_ab10[merged_program_only_ab10['_merge'].isin(['left_only', 'right_only'])]
-# # merged_program_only_ab10_nonmatch.to_csv('merged_program_only_ab10_nonmatch.csv', index=False)
+# Create 'Gene Match?' column
+merged_program_only_ab10_results['Gene Match?'] = merged_program_only_ab10_results.apply(lambda row: 'Yes' if row['shortProduct'] == row['prgPRODUCT'] else 'No', axis=1)
+
+# Create 'Variant Match?' column 
+merged_program_only_ab10_results['Variant Match?'] = merged_program_only_ab10_results.apply(check_variant_match, axis=1)
+
+# Export the results to CSV file 
+# merged_program_only_ab10.to_csv('merged_program_only_ab10_both_id_and_gene.csv', index=False)
+
+# Print out df includes matches 
+merged_program_only_ab10_match = merged_program_only_ab10_results[merged_program_only_ab10_results['_merge'] == 'both']
+# merged_program_only_ab10_match.to_csv('merged_program_only_ab10_match.csv', index=False)
+
+# Print out df includes non-matches 
+merged_program_only_ab10_nonmatch = merged_program_only_ab10_results[merged_program_only_ab10_results['_merge'].isin(['left_only', 'right_only'])]
+# merged_program_only_ab10_nonmatch.to_csv('merged_program_only_ab10_nonmatch.csv', index=False)
 
 # # ## Scenario 3: found in abricate but not in the program- extracting contigs using Unix, identifying associated primers, and then using NCBI for alignment of the primers with the extracted contigs
 # # # Put the list of seqs that needed to be compare into a .txt file: abricateOnly.txt
