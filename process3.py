@@ -209,41 +209,40 @@ merged_program_only_ab10_nonmatch = merged_program_only_ab10_results[merged_prog
 
 # Eventually should create a table to tell the genes, variants found
 
-# # ## Scenario 3: found in abricate but not in the program- extracting contigs using Unix, identifying associated primers, and then using NCBI for alignment of the primers with the extracted contigs
-# # # Put the list of seqs that needed to be compare into a .txt file: abricateOnly.txt
-# # # seqtk subseq contigs_ex.fasta abricateOnly.txt > abricateOnly.fasta # This will print out all the seqs for the comparison 
+# Scenario 3: found in abricate but not in the program- extracting contigs using Unix, identifying associated primers, and then using NCBI for alignment of the primers with the extracted contigs
+# Put the list of seqs that needed to be compare into a .txt file: abricateOnly.txt
+# seqtk subseq contigs_ex.fasta abricateOnly.txt > abricateOnly.fasta # This will print out all the seqs for the comparison 
 
-# # Create 'Reason' column in abricate_only df
-# # If 'prgGENE' is found in 'filtered_primer', fill with 'Mismatches', else 'Primers not found'
-# abricate_only = abricate_only[['SEQUENCE','GENE','prgGENE']]
-# abricate_only['Reason'] = abricate_only['prgGENE'].apply(lambda x: 'Mismatches' if x in filtered_primer['shortTarget'].values else 'Primers not found')
-# # abricate_only.to_csv('abricate_only_and_primers.csv', index=False)
+# Create 'Reason' column in abricate_only df
+# If 'prgGENE' is found in 'filtered_primer', fill with 'Mismatches', else 'Primers not found'
+abricate_only['Reason'] = abricate_only['prgGENE'].apply(lambda x: 'Mismatches' if x in filtered_primer['shortTarget'].values else 'Primers not found')
+# abricate_only.to_csv('abricate_only_and_primers.csv', index=False)
 
-# # Filter out rows with 'Reason' == 'Mismatches' in abricate_only dataframe
-# mismatches_primers_df = abricate_only[abricate_only['Reason'] == 'Mismatches']
+# Filter out rows with 'Reason' == 'Mismatches' in abricate_only dataframe
+mismatches_primers_df = abricate_only[abricate_only['Reason'] == 'Mismatches']
 
-# # # Get corresponding 'F_truseq' and 'R_truseq' from filtered_primer dataframe for each 'prgGENE' in mismatches_primers_df
-# mismatches_primers_df = mismatches_primers_df.merge(filtered_primer[['shortTarget', 'F_truseq', 'R_truseq']], left_on='prgGENE', right_on='shortTarget', how='inner')
+# # Get corresponding 'F_truseq' and 'R_truseq' from filtered_primer dataframe for each 'prgGENE' in mismatches_primers_df
+mismatches_primers_df = mismatches_primers_df.merge(filtered_primer[['target_gene', 'F_truseq', 'R_truseq', 'shortTarget']], left_on='prgGENE', right_on='shortTarget', how='inner')
 
-# # Write all the primers in a single line in the text file
-# with open('mismatches_primers.txt', 'w') as file:
-#     mismatches_primers = ', '.join([f"{row['F_truseq']}, {row['R_truseq']}" for _, row in mismatches_primers_df.iterrows()])
-#     file.write(mismatches_primers)
+# Write all the primers in a single line in the text file
+with open('mismatches_primers.txt', 'w') as file:
+    mismatches_primers = ', '.join([f"{row['F_truseq']}, {row['R_truseq']}" for _, row in mismatches_primers_df.iterrows()])
+    file.write(mismatches_primers)
 
-# # Create a set of all record IDs from the 'Record ID' column 
-# record_ids = mismatches_primers_df['SEQUENCE'].tolist()
+# Create a set of all record IDs from the 'Record ID' column 
+record_ids = mismatches_primers_df['SEQUENCE'].tolist()
 
-# # Read the contigs
-# fasta_seqs = SeqIO.parse(open('contigs_ex.fasta'), 'fasta')
+# Read the contigs
+fasta_seqs = SeqIO.parse(open('contigs_ex.fasta'), 'fasta')
 
-# # Create new fasta file that contains only seqs found in program
-# with open("abricate_only.fasta", "w") as out_file:
-#     for fasta in fasta_seqs:
-#         name, sequence = fasta.id, str(fasta.seq)
-#         if name in record_ids:
-#             SeqIO.write(fasta, out_file, "fasta")
+# Create new fasta file that contains only seqs found in program
+with open("abricate_only.fasta", "w") as out_file:
+    for fasta in fasta_seqs:
+        name, sequence = fasta.id, str(fasta.seq)
+        if name in record_ids:
+            SeqIO.write(fasta, out_file, "fasta")
 
-# # # Run the primers supposed to be found by the program against the contigs to check for mismatches 
-# run_command(['./blast.sh'])
+# # Run the primers supposed to be found by the program against the contigs to check for mismatches 
+run_command(['./blast.sh'])
 
-# #############################################################################################################
+#############################################################################################################
