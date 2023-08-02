@@ -207,6 +207,8 @@ merged_program_only_ab10_match = merged_program_only_ab10_results[merged_program
 merged_program_only_ab10_nonmatch = merged_program_only_ab10_results[merged_program_only_ab10_results['_merge'].isin(['left_only', 'right_only'])]
 # merged_program_only_ab10_nonmatch.to_csv('merged_program_only_ab10_nonmatch.csv', index=False)
 
+# Eventually should create a table to tell the genes, variants found
+
 # # ## Scenario 3: found in abricate but not in the program- extracting contigs using Unix, identifying associated primers, and then using NCBI for alignment of the primers with the extracted contigs
 # # # Put the list of seqs that needed to be compare into a .txt file: abricateOnly.txt
 # # # seqtk subseq contigs_ex.fasta abricateOnly.txt > abricateOnly.fasta # This will print out all the seqs for the comparison 
