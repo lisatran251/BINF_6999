@@ -6,7 +6,7 @@ import argparse
 import os
 import re
 
-# How to run:
+# How to run:      
 # python3 -m venv ~/my_venv
 # source ~/my_venv/bin/activate
 # pip install pandas numpy biopython argparse

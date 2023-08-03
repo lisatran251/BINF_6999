@@ -1,10 +1,10 @@
 import pandas as pd
 import numpy as np 
-import sys
-from Bio import SeqIO, Entrez 
+ from Bio import SeqIO, Entrez 
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 import re
+import argparse
 import subprocess 
 import traceback
 
@@ -17,7 +17,8 @@ import traceback
 pd.set_option('display.max_rows', None)
 
 # Provide email to NCBI, maybe turn this into input value later
-Entrez.email = "lisaa.tran2501@gmail.com"
+# Entrez.email = "lisaa.tran2501@gmail.com"
+Entrez.email = sys.argv[1]
 
 # Define the function that used to run multiple Shell script 
 def run_command(command):
@@ -32,11 +33,14 @@ def run_command(command):
         print(result.stdout)
 
 # Run abricate: abricate --db resfinder --quiet contigs_ex.fasta > abricate_results.csv
-# run_command(['./shellscript/run_abricate.sh'])
+run_command(['./shellscript/run_abricate.sh'])
 
 # Load the data
-primers = pd.read_csv('DARTE-QM_primer_design.csv') 
-results = pd.read_csv('final_result.csv')
+primers_file = sys.argv[2]
+results_file = sys.argv[3]
+primers = pd.read_csv(primers_file) 
+# results = pd.read_csv('final_result.csv')
+results = pd.read_csv(results_file)
 ab_results = pd.read_csv('abricate_results.csv', delimiter='\t')
 
 # Create a df for the final_result
@@ -134,12 +138,12 @@ merged_program_ab['Variant Match?'] = merged_program_ab.apply(check_variant_matc
 # Rows in program not in abricate
 program_only = merged_program_ab[merged_program_ab['_merge'] == 'left_only']
 program_only = program_only.iloc[:, :9]
-program_only.to_csv('program_only.csv', index=False)
+# program_only.to_csv('program_only.csv', index=False)
 
 # Rows in abricate not in program
 abricate_only = merged_program_ab[merged_program_ab['_merge'] == 'right_only']
 abricate_only = abricate_only.iloc[:, 9:20]
-abricate_only.to_csv('abricate_only.csv', index=False)
+# abricate_only.to_csv('abricate_only.csv', index=False)
 
 # Rows found in both progsram not in abricate
 both_program_ab_result = merged_program_ab[merged_program_ab['_merge'] == 'both']
@@ -166,7 +170,9 @@ with  open('variants_originalSEQUENCE.fasta', 'w') as f:
 record_ids = program_only['Record ID'].tolist()
 
 # Read the contigs
-fasta_seqs = SeqIO.parse(open('contigs_ex.fasta'), 'fasta')
+# fasta_seqs = SeqIO.parse(open('contigs_ex.fasta'), 'fasta')
+contigs = sys.argv[4]
+fasta_seqs = SeqIO.parse(open(contigs), 'fasta')
 
 # Create new fasta file that contains seqs only found by the program
 with open("program_only.fasta", "w") as out_file:
@@ -233,7 +239,7 @@ with open('mismatches_primers.txt', 'w') as file:
 record_ids = mismatches_primers_df['SEQUENCE'].tolist()
 
 # Read the contigs
-fasta_seqs = SeqIO.parse(open('contigs_ex.fasta'), 'fasta')
+fasta_seqs = SeqIO.parse(open(contigs), 'fasta')
 
 # Create new fasta file that contains only seqs found in program
 with open("abricate_only.fasta", "w") as out_file:

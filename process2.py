@@ -76,7 +76,7 @@ match = results[results['Qualified?'] == 'Yes']
 nonmatch = results[results['Qualified?'] == 'No']
 
 # Save to separate csv files without the 'Qualified?' column
-match.drop(columns=['Qualified?']).to_csv('match.csv', index=False)
-nonmatch.drop(columns=['Qualified?']).to_csv('nonmatch.csv', index=False)
+# match.drop(columns=['Qualified?']).to_csv('match.csv', index=False)
+# nonmatch.drop(columns=['Qualified?']).to_csv('nonmatch.csv', index=False)
 
 
