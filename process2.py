@@ -75,7 +75,7 @@ results.to_csv('final_result.csv', index=False)
 match = results[results['Qualified?'] == 'Yes']
 nonmatch = results[results['Qualified?'] == 'No']
 
-# Save to separate csv files without the 'Qualified?' column
+# Save to separate csv files without the 'Qualified?' column, are these neccessary?
 # match.drop(columns=['Qualified?']).to_csv('match.csv', index=False)
 # nonmatch.drop(columns=['Qualified?']).to_csv('nonmatch.csv', index=False)
 
