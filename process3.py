@@ -15,6 +15,8 @@ import traceback
 # python3 -m venv ~/my_venv
 # source ~/my_venv/bin/activate
 # pip install pandas numpy biopython
+# python3 process3.py email_address primer_file result_file original_fasta_file 
+# e.g: python3 process3.py lisaa.tran2501@gmail.com DARTE-QM_primer_design.csv final_result.csv contigs_ex.fasta 
 
 # Set the display.max_rows option to print all rows 
 pd.set_option('display.max_rows', None)
@@ -36,7 +38,7 @@ def run_command(command):
         print(result.stdout)
 
 # Run abricate: abricate --db resfinder --quiet contigs_ex.fasta > abricate_results.csv
-run_command(['./run_abricate.sh'])
+# run_command(['./run_abricate.sh'])
 
 # Load the data
 primers_file = sys.argv[2]
@@ -155,6 +157,7 @@ both_program_ab_result = merged_program_ab[merged_program_ab['_merge'] == 'both'
 ## Scenario 1: target gene found - explore variants, artifacts etc. 
 # Select rows from merged_program_ab where 'Gene Match?' = 'Yes' and 'Variant Match?' = 'No'
 filtered_merged_program_ab = merged_program_ab[(merged_program_ab['Gene Match?'] == 'Yes') & (merged_program_ab['Variant Match?'] == 'No')]
+# filtered_merged_program_ab.to_csv('filtered_merged_program_ab.csv', index=False)
 
 # Save the 'F_product' and 'originalSEQUENCE' to a fasta file
 with  open('variants_F_Product.fasta', 'w') as f:
@@ -185,7 +188,7 @@ with open("program_only.fasta", "w") as out_file:
             SeqIO.write(fasta, out_file, "fasta")
 
 # Re-run Abricate with lower coverage: abricate --db resfinder --quiet --mincov 10 program_only.fasta > program_only_ab10_results.csv
-run_command(['./run_abricate_10.sh'])
+# run_command(['./run_abricate_10.sh'])
 
 # Load files
 program_only_ab10_results = pd.read_csv('program_only_ab10_results.csv', delimiter='\t')
@@ -252,6 +255,6 @@ with open("abricate_only.fasta", "w") as out_file:
             SeqIO.write(fasta, out_file, "fasta")
 
 # # Run the primers supposed to be found by the program against the contigs to check for mismatches 
-run_command(['./blast.sh'])
+# run_command(['./run_blast.sh'])
 
 #############################################################################################################
