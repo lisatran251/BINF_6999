@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --account=def-nricker
-#SBATCH --time=0-02:00
+#SBATCH --time=0-00:05
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --mem=1G
+#SBATCH --mem=200MB
 
 # How to run: sbatch run_program.sh input_file primer_file chunk_size email address
 # Example: sbatch run_program.sh contigs_ex.fasta DARTE-QM_primer_design.csv 10000 lisaa.tran2501@gmail.com
@@ -49,6 +49,7 @@ do
     --output=$result_dir/extract_product_${i}_%j.out \
     --wrap="source ~/my_venv/bin/activate && python3 process1.py \"$chunk_file\" \"$primer_file\"")
 
+
     # Append this job_id to job_ids with ':' as separator
     job_ids+="${job_id}:"
 done
@@ -57,7 +58,7 @@ done
 job_ids=${job_ids%:}
 
 # Run second script after all chunks have been processed
-sbatch --account=def-nricker \
+job_id_process2=$(sbatch --parsable --account=def-nricker \
 --dependency=afterok:$job_ids \
 --time=0-02:00 \
 --nodes=1 \
@@ -65,15 +66,15 @@ sbatch --account=def-nricker \
 --mem=1G \
 --job-name=process2 \
 --output=$result_dir/process_final_results_%j.out \
---wrap="source ~/my_venv/bin/activate && python3 process2.py \"$primer_file\" raw_results.csv"
+--wrap="source ~/my_venv/bin/activate && python3 process2.py \"$primer_file\" raw_results.csv")
 
 # Run third script after the second one is completed 
 sbatch --account=def-nricker \
 --dependency=afterok:$job_id_process2 \
---time=0-01:00 \ 
+--time=0-02:00 \
 --nodes=1 \
 --ntasks-per-node=1 \
 --mem=1G \
 --job-name=process3 \
---output=. 
---wrap="source ~/my_venv/bin/activate && python3 process3.py \"$email_address\" \"$primer_file\" final_result.csv \"$input_file\"
+--output=$result_dir/process_final_results_%j.out \
+--wrap="source ~/my_venv/bin/activate && python3 process3.py \"$email_address\" \"$primer_file\" final_result.csv \"$input_file\""
