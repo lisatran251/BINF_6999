@@ -47,6 +47,8 @@ primers = pd.read_csv(primers_file)
 # results = pd.read_csv('final_result.csv')
 results = pd.read_csv(results_file)
 ab_results = pd.read_csv('abricate_results.csv', delimiter='\t')
+# Read the contigs
+contigs = sys.argv[4]
 
 # Create a df for the final_result
 filtered_result = results[['Record ID', 'Length', 'Combination', 'F_Product', 'F_primer', 'R_primer', 'Target']]
@@ -159,11 +161,23 @@ both_program_ab_result = merged_program_ab[merged_program_ab['_merge'] == 'both'
 filtered_merged_program_ab = merged_program_ab[(merged_program_ab['Gene Match?'] == 'Yes') & (merged_program_ab['Variant Match?'] == 'No')]
 # filtered_merged_program_ab.to_csv('filtered_merged_program_ab.csv', index=False)
 
-# Save the 'F_product' and 'originalSEQUENCE' to a fasta file
-with  open('variants_F_Product.fasta', 'w') as f:
-    for index, row in filtered_merged_program_ab.iterrows():
-        f.write(f">seq_{index}_F_Product\n{row['F_Product']}\n")
+# Define a function to get the sequence from the original contigs 
+def get_sequence(record_id):    
+    with open(contigs, 'r') as f:
+        for record in SeqIO.parse(f, 'fasta'):
+            if record.id == record_id:
+                return str(record.seq)
+    return None 
 
+# Create a new column in df to contain the contigs, can create a copy to avoid warning (opt)
+filtered_merged_program_ab['Contigs'] = filtered_merged_program_ab['Record ID'].apply(get_sequence)
+
+# Write a fasta include Record ID and Contigs
+with open('variants_originalCONTIG.fasta', 'w') as f:
+    for index, row in filtered_merged_program_ab.iterrows():
+        f.write(f">seq_{index}_originalCONTIGS\n{row['Contigs']}\n")
+
+# Write a fasta include Record ID and original sequence from Abricate program
 with  open('variants_originalSEQUENCE.fasta', 'w') as f:
     for index, row in filtered_merged_program_ab.iterrows():
         f.write(f">seq_{index}_originalSEQUENCE\n{row['originalSEQUENCE']}\n")
@@ -175,9 +189,6 @@ with  open('variants_originalSEQUENCE.fasta', 'w') as f:
 # Create a set of all record IDs from the 'Record ID' column 
 record_ids = program_only['Record ID'].tolist()
 
-# Read the contigs
-# fasta_seqs = SeqIO.parse(open('contigs_ex.fasta'), 'fasta')
-contigs = sys.argv[4]
 fasta_seqs = SeqIO.parse(open(contigs), 'fasta')
 
 # Create new fasta file that contains seqs only found by the program
