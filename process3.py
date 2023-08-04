@@ -33,7 +33,7 @@ def run_command(command):
         print(result.stdout)
 
 # Run abricate: abricate --db resfinder --quiet contigs_ex.fasta > abricate_results.csv
-run_command(['./shellscript/run_abricate.sh'])
+run_command(['./run_abricate.sh'])
 
 # Load the data
 primers_file = sys.argv[2]
@@ -182,7 +182,7 @@ with open("program_only.fasta", "w") as out_file:
             SeqIO.write(fasta, out_file, "fasta")
 
 # Re-run Abricate with lower coverage: abricate --db resfinder --quiet --mincov 10 program_only.fasta > program_only_ab10_results.csv
-run_command(['./shellscript/run_abricate_10.sh'])
+run_command(['./run_abricate_10.sh'])
 
 # Load files
 program_only_ab10_results = pd.read_csv('program_only_ab10_results.csv', delimiter='\t')
@@ -249,6 +249,6 @@ with open("abricate_only.fasta", "w") as out_file:
             SeqIO.write(fasta, out_file, "fasta")
 
 # # Run the primers supposed to be found by the program against the contigs to check for mismatches 
-run_command(['./shellscript/blast.sh'])
+run_command(['./blast.sh'])
 
 #############################################################################################################
