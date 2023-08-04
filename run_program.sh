@@ -60,7 +60,7 @@ job_ids=${job_ids%:}
 # Run second script after all chunks have been processed
 job_id_process2=$(sbatch --parsable --account=def-nricker \
 --dependency=afterok:$job_ids \
---time=0-02:00 \
+--time=0-04:00 \
 --nodes=1 \
 --ntasks-per-node=1 \
 --mem=1G \
@@ -71,7 +71,7 @@ job_id_process2=$(sbatch --parsable --account=def-nricker \
 # Run third script after the second one is completed 
 sbatch --account=def-nricker \
 --dependency=afterok:$job_id_process2 \
---time=0-02:00 \
+--time=0-04:00 \
 --nodes=1 \
 --ntasks-per-node=1 \
 --mem=1G \

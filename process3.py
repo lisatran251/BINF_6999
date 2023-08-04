@@ -140,8 +140,8 @@ def check_variant_match(row):
         return 'No'
 
 merged_program_ab['Variant Match?'] = merged_program_ab.apply(check_variant_match, axis=1)
-# Final report after merging 
-merged_program_ab.to_csv('merged_prog_ab.csv', index=False)
+# Final report after merging
+# merged_program_ab.to_csv('merged_prog_ab.csv', index=False)
 
 # Rows in program not in abricate
 program_only = merged_program_ab[merged_program_ab['_merge'] == 'left_only']
