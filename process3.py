@@ -140,7 +140,8 @@ def check_variant_match(row):
         return 'No'
 
 merged_program_ab['Variant Match?'] = merged_program_ab.apply(check_variant_match, axis=1)
-# merged_program_ab.to_csv('merged_prog_ab.csv', index=False)
+# Final report after merging 
+merged_program_ab.to_csv('merged_prog_ab.csv', index=False)
 
 # Rows in program not in abricate
 program_only = merged_program_ab[merged_program_ab['_merge'] == 'left_only']
@@ -152,7 +153,7 @@ abricate_only = merged_program_ab[merged_program_ab['_merge'] == 'right_only']
 abricate_only = abricate_only.iloc[:, 9:20]
 # abricate_only.to_csv('abricate_only.csv', index=False)
 
-# Rows found in both progsram not in abricate
+# Rows found in both progsram ands abricate
 both_program_ab_result = merged_program_ab[merged_program_ab['_merge'] == 'both']
 # both_program_ab_result.drop('_merge', axis=1).to_csv('both_program_ab_result.csv', index=False)
 
@@ -220,7 +221,7 @@ merged_program_only_ab10_results['Gene Match?'] = merged_program_only_ab10_resul
 merged_program_only_ab10_results['Variant Match?'] = merged_program_only_ab10_results.apply(check_variant_match, axis=1)
 
 # Export the results to CSV file 
-# merged_program_only_ab10.to_csv('merged_program_only_ab10_both_id_and_gene.csv', index=False)
+merged_program_only_ab10.to_csv('merged_program_only_ab10_both_id_and_gene.csv', index=False)
 
 # Print out df includes matches 
 merged_program_only_ab10_match = merged_program_only_ab10_results[merged_program_only_ab10_results['_merge'] == 'both']
@@ -239,7 +240,7 @@ merged_program_only_ab10_nonmatch = merged_program_only_ab10_results[merged_prog
 # Create 'Reason' column in abricate_only df
 # If 'prgGENE' is found in 'filtered_primer', fill with 'Mismatches', else 'Primers not found'
 abricate_only['Reason'] = abricate_only['prgGENE'].apply(lambda x: 'Mismatches' if x in filtered_primer['shortTarget'].values else 'Primers not found')
-# abricate_only.to_csv('abricate_only_and_primers.csv', index=False)
+abricate_only.to_csv('abricate_only_and_primers.csv', index=False)
 
 # Filter out rows with 'Reason' == 'Mismatches' in abricate_only dataframe
 mismatches_primers_df = abricate_only[abricate_only['Reason'] == 'Mismatches']
