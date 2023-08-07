@@ -72,3 +72,5 @@ Seemann T. (2023). Abricate. Github. https://github.com/tseemann/abricate
 Smith, S. D., Choi, J., Ricker, N., Yang, F., Hinsa-Leasure, S., Soupir, M. L., Allen, H. K., & Howe, A. (2022). Diversity of Antibiotic Resistance genes and Transfer Elements-Quantitative Monitoring (DARTE-QM): a method for detection of antimicrobial resistance in environmental samples. Communications Biology, 5(1), 216. https://doi.org/10.1038/s42003-022-03155-9
 Zankari, E., Hasman, H., Cosentino, S., Vestergaard, M., Rasmussen, S., Lund, O., Aarestrup, F. M., & Larsen, M. V. (2012). Identification of acquired antimicrobial resistance genes. Journal of Antimicrobial Chemotherapy, 67(11), 2640–2644. https://doi.org/10.1093/jac/dks261
 
+## Author
+Lisa Thuy Duyen Tran
