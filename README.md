@@ -22,8 +22,11 @@ The method involves a series of scripts that are automatically submitted as sepa
 
 ### Input Parameters:
 •	contig_fasta_file: Input FASTA file containing DNA sequences to be analyzed (contigs).
+
 •	primer_file: CSV file containing primer sequences. 
+
 •	chunk_size: Number of sequences to be processed per chunk for parallelization.
+
 •	email_address: Email address of the user to fetch sequences from NCBI.
 
 ## Workflow Execution:
