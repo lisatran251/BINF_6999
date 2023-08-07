@@ -1,10 +1,15 @@
 import pandas as pd
-from Bio import SeqIO
-from Bio.Seq import Seq
+import numpy as np 
 import time
 import argparse
 import os
 import re
+import sys
+import subprocess 
+import traceback
+from Bio import SeqIO, Entrez 
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 
 # How to run:      
 # python3 -m venv ~/my_venv

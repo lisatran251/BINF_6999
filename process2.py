@@ -1,6 +1,13 @@
 import pandas as pd
+import numpy as np 
+import time
+import argparse
+import os
+import re
 import sys
-from Bio import SeqIO 
+import subprocess 
+import traceback
+from Bio import SeqIO, Entrez 
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
