@@ -67,10 +67,14 @@ This script was developed to analyze AMGs in contig FASTA files using both ABRic
 
 ## Citation
 Christaki, E., Marcou, M., & Tofarides, A. (2020). Antimicrobial Resistance in Bacteria: Mechanisms, Evolution, and Persistence. Journal of Molecular Evolution, 88(1), 26–40. https://doi.org/10.1007/s00239-019-09914-3
+
 Harbarth, S., Balkhy, H. H., Goossens, H., Jarlier, V., Kluytmans, J., Laxminarayan, R., Saam, M., Van Belkum, A., & Pittet, D. (2015). Antimicrobial resistance: one world, one fight! Antimicrobial Resistance and Infection Control, 4(1), 49. https://doi.org/10.1186/s13756-015-0091-2
+
 Seemann T. (2023). Abricate. Github. https://github.com/tseemann/abricate
+
 Smith, S. D., Choi, J., Ricker, N., Yang, F., Hinsa-Leasure, S., Soupir, M. L., Allen, H. K., & Howe, A. (2022). Diversity of Antibiotic Resistance genes and Transfer Elements-Quantitative Monitoring (DARTE-QM): a method for detection of antimicrobial resistance in environmental samples. Communications Biology, 5(1), 216. https://doi.org/10.1038/s42003-022-03155-9
+
 Zankari, E., Hasman, H., Cosentino, S., Vestergaard, M., Rasmussen, S., Lund, O., Aarestrup, F. M., & Larsen, M. V. (2012). Identification of acquired antimicrobial resistance genes. Journal of Antimicrobial Chemotherapy, 67(11), 2640–2644. https://doi.org/10.1093/jac/dks261
 
 ## Author
-Lisa Thuy Duyen Tran
+Lisa Thuy Duyen Tran | thuyduye@uoguelph.ca
