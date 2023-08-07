@@ -230,14 +230,11 @@ nonmatch = results[results['Qualified?'] == 'No']
 match.drop(columns=['Qualified?']).to_csv('match.csv', index=False)
 nonmatch.drop(columns=['Qualified?']).to_csv('nonmatch.csv', index=False)
 
-# python3 process3.py email_address primer_file result_file original_fasta_file 
-# e.g: python3 process3.py lisaa.tran2501@gmail.com DARTE-QM_primer_design.csv final_result.csv contigs_ex.fasta 
-
 # Set the display.max_rows option to print all rows 
 pd.set_option('display.max_rows', None)
 
 # Provide email to NCBI, maybe turn this into input value later
-Entrez.email = sys.argv[1]
+Entrez.email = "thuyduye@uoguelph.ca"
 
 # Define the function that used to run multiple Shell script 
 def run_command(command):
