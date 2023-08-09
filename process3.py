@@ -37,7 +37,7 @@ def run_command(command):
         print(result.stdout)
 
 # Run abricate: abricate --db resfinder --quiet contigs_ex.fasta > abricate_results.csv
-run_command(['./run_abricate.sh'])
+# run_command(['./run_abricate.sh'])
 
 # Load the data
 primers_file = sys.argv[2]
@@ -147,6 +147,7 @@ merged_program_ab['Variant Match?'] = merged_program_ab.apply(check_variant_matc
 
 # Sort before merging 
 merged_program_ab = merged_program_ab.sort_values(by='Record ID')
+
 # Final report after merging
 merged_program_ab.to_csv('merged_prog_ab.csv', index=False)
 
