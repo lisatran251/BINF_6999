@@ -145,8 +145,8 @@ def check_variant_match(row):
 
 merged_program_ab['Variant Match?'] = merged_program_ab.apply(check_variant_match, axis=1)
 
-# Sort before merging 
-merged_program_ab = merged_program_ab.sort_values(by='Record ID')
+# # Sort before merging 
+# merged_program_ab = merged_program_ab.sort_values(by='Record ID')
 
 # Final report after merging
 merged_program_ab.to_csv('merged_prog_ab.csv', index=False)
@@ -154,7 +154,7 @@ merged_program_ab.to_csv('merged_prog_ab.csv', index=False)
 # Rows in program not in abricate
 program_only = merged_program_ab[merged_program_ab['_merge'] == 'left_only']
 program_only = program_only.iloc[:, :10]
-program_only.to_csv('program_only.csv', index=False)
+# program_only.to_csv('program_only.csv', index=False)
 
 # Rows in abricate not in program
 abricate_only = merged_program_ab[merged_program_ab['_merge'] == 'right_only']
@@ -194,7 +194,7 @@ both_program_ab_result = merged_program_ab[merged_program_ab['_merge'] == 'both'
 ## Run cdhit in Unix: cd-hit-est -i varsiants.fasta -o cdhit_rs -c 0.9 -n 10 -d 0
 # The main reason is tsshe product is very short while the sequence achieved using accession number is much longer. Therefore, when run cd-hit which based on the similarity between two sequences and the identiy % much be higher than 70%, therefore we may want to run BLAST instead.  
 
-# ## Scenario 2: found in program not in abricate- re-run with lower %identity on abricate
+## Scenario 2: found in program not in abricate- re-run with lower %identity on abricate
 # Create a set of all record IDs from the 'Record ID' column 
 record_ids = program_only['Record ID'].tolist()
 
@@ -208,10 +208,16 @@ with open("program_only.fasta", "w") as out_file:
             SeqIO.write(fasta, out_file, "fasta")
 
 # Re-run Abricate with lower coverage: abricate --db resfinder --quiet --mincov 10 program_only.fasta > program_only_ab10_results.csv
-run_command(['./run_abricate_10.sh'])
+# run_command(['./run_abricate_10.sh'])
 
 # Load files
 program_only_ab10_results = pd.read_csv('program_only_ab10_results.csv', delimiter='\t')
+
+# Create a length column for abricate data
+program_only_ab10_results['LENGTH'] = program_only_ab10_results['END'] - program_only_ab10_results['START']
+
+# Create a df for abricate_result
+program_only_ab10_results = program_only_ab10_results[['SEQUENCE', 'LENGTH', 'STRAND', 'GENE', '%COVERAGE', '%IDENTITY', 'ACCESSION', 'PRODUCT']]
 
 # Apply the function to each string in the 'GENE' column
 program_only_ab10_results['prgGENE'] = program_only_ab10_results['GENE'].apply(replace_chars)
@@ -248,7 +254,6 @@ merged_program_only_ab10_nonmatch = merged_program_only_ab10_results[merged_prog
 # Create 'Reason' column in abricate_only df
 # If 'prgGENE' is found in 'filtered_primer', fill with 'Mismatches', else 'Primers not found'
 abricate_only['Reason'] = abricate_only['prgGENE'].apply(lambda x: 'Mismatches' if x in filtered_primer['shortTarget'].values else 'Primers not found')
-abricate_only.to_csv('abricate_only_and_primers.csv', index=False)
 
 # Filter out rows with 'Reason' == 'Mismatches' in abricate_only dataframe
 mismatches_primers_df = abricate_only[abricate_only['Reason'] == 'Mismatches']
@@ -275,6 +280,21 @@ with open("abricate_only.fasta", "w") as out_file:
             SeqIO.write(fasta, out_file, "fasta")
 
 # # Run the primers supposed to be found by the program against the contigs to check for mismatches 
-run_command(['./run_blast.sh'])
+# run_command(['./run_blast.sh'])
+
+## Printing final report
+# Create copies of the dataframes
+df1_copy = merged_program_ab.copy()
+df2_copy = merged_program_only_ab10_results.copy()
+df3_copy = abricate_only.copy()ssss
+
+# Add the 'extra note' column to each copy without specifying a name
+df1_copy[""] = 'high coverage'
+df2_copy[""] = 'low coverage'
+df3_copy[""] = 'only found in Abricate'
+
+# Append the dataframes one after the other
+final_df = df1_copy.append(df2_copy).append(df3_copy).reset_index(drop=True)
+final_df.to_csv('final_report.csv', index=False)
 
 #############################################################################################################
