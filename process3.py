@@ -258,12 +258,16 @@ abricate_only['Reason'] = abricate_only['prgGENE'].apply(lambda x: 'Mismatches' 
 # Filter out rows with 'Reason' == 'Mismatches' in abricate_only dataframe
 mismatches_primers_df = abricate_only[abricate_only['Reason'] == 'Mismatches']
 
-# # Get corresponding 'F_truseq' and 'R_truseq' from filtered_primer dataframe for each 'prgGENE' in mismatches_primers_df
+# Merge to get corresponding 'F_truseq' and 'R_truseq' from filtered_primer dataframe for each 'prgGENE' in mismatches_primers_df
 mismatches_primers_df = mismatches_primers_df.merge(filtered_primer[['target_gene', 'F_truseq', 'R_truseq', 'shortTarget']], left_on='prgGENE', right_on='shortTarget', how='inner')
 
-# Write all the primers in a single line in the text file
+# Calculate reverse complements for each row in mismatches_primers_df
+mismatches_primers_df['F_truseq_reverse_complement'] = mismatches_primers_df['F_truseq'].apply(lambda x: str(Seq(x).reverse_complement()))
+mismatches_primers_df['R_truseq_reverse_complement'] = mismatches_primers_df['R_truseq'].apply(lambda x: str(Seq(x).reverse_complement()))
+
+# Write all the primers (original and reverse complemented) in a single line in the text file
 with open('mismatches_primers.txt', 'w') as file:
-    mismatches_primers = ', '.join([f"{row['F_truseq']}, {row['R_truseq']}" for _, row in mismatches_primers_df.iterrows()])
+    mismatches_primers = ', '.join([f"{row['F_truseq']}, {row['R_truseq']}, {row['F_truseq_reverse_complement']}, {row['R_truseq_reverse_complement']}" for _, row in mismatches_primers_df.iterrows()])
     file.write(mismatches_primers)
 
 # Create a set of all record IDs from the 'Record ID' column 
@@ -280,7 +284,7 @@ with open("abricate_only.fasta", "w") as out_file:
             SeqIO.write(fasta, out_file, "fasta")
 
 # # Run the primers supposed to be found by the program against the contigs to check for mismatches 
-# run_command(['./run_blast.sh'])
+run_command(['./run_blast.sh'])
 
 ## Printing final report
 # Create copies of the dataframes
