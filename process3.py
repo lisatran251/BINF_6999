@@ -286,7 +286,7 @@ with open("abricate_only.fasta", "w") as out_file:
 # Create copies of the dataframes
 df1_copy = merged_program_ab.copy()
 df2_copy = merged_program_only_ab10_results.copy()
-df3_copy = abricate_only.copy()ssss
+df3_copy = abricate_only.copy()
 
 # Add the 'extra note' column to each copy without specifying a name
 df1_copy[""] = 'high coverage'
@@ -295,6 +295,15 @@ df3_copy[""] = 'only found in Abricate'
 
 # Append the dataframes one after the other
 final_df = df1_copy.append(df2_copy).append(df3_copy).reset_index(drop=True)
+
+# # Export to HTML
+# html = final_df.to_html()
+
+# # Save to a file
+# with open('output.html', 'w') as f:
+#     f.write(html)
+
+final_df = final_df.drop(['originalCONTIG', 'originalSEQUENCE'], axis=1)
 final_df.to_csv('final_report.csv', index=False)
 
 #############################################################################################################
