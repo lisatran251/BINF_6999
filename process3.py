@@ -106,6 +106,8 @@ def create_short_product(x):
 
 # Create 'shortProduct' column
 filtered_result['shortProduct'] = filtered_result['shortTarget'].apply(create_short_product)
+# Replace values in 'shortProduct' column
+filtered_result['shortProduct'] = filtered_result['shortProduct'].replace(r'^aac_3_-IV.*$', 'aac_3_-IV', regex=True)
 
 # Create a copy of primer df  
 filtered_primer = primers.copy()
@@ -244,8 +246,6 @@ merged_program_only_ab10_match = merged_program_only_ab10_results[merged_program
 # Print out df includes non-matches 
 merged_program_only_ab10_nonmatch = merged_program_only_ab10_results[merged_program_only_ab10_results['_merge'].isin(['left_only', 'right_only'])]
 # merged_program_only_ab10_nonmatch.to_csv('merged_program_only_ab10_nonmatch.csv', index=False)
-
-# Eventually should create a table to tell the genes, variants found
 
 # Scenario 3: found in abricate but not in the program- extracting contigs using Unix, identifying associated primers, and then using NCBI for alignment of the primers with the extracted contigs
 # Put the list of seqs that needed to be compare into a .txt file: abricateOnly.txt
