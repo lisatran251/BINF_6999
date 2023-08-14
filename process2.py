@@ -11,7 +11,11 @@ from Bio import SeqIO, Entrez
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-# How to run: python3 process2.py DARTE-QM_primer_design.csv raw_results.csv 
+# How to run: 
+# python3 -m venv ~/my_venv
+# source ~/my_venv/bin/activate
+# pip install pandas numpy biopython
+# python3 process2.py DARTE-QM_primer_design.csv raw_results.csv 
 
 # Set the display.max_rows option to print all rows 
 pd.set_option('display.max_rows', None)
@@ -28,7 +32,8 @@ primers = pd.read_csv(primers_file)
 results = pd.read_csv(results_file)
 
 # Assuming df is your DataFrame
-primers['target_gene'] = primers['target_gene'].str.replace('^cfrB', 'cfr_B', regex=True)
+primers['target_gene'] = primers['target_gene'].str.replace('^cfrB', 'cfr_B_', regex=True)
+
 
 # Fill 'F_primer' and 'R_primer' columns based on the value of 'Combination' column
 for i, row in results.iterrows():
