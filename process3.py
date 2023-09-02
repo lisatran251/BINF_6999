@@ -45,7 +45,6 @@ results_file = sys.argv[3]
 primers = pd.read_csv(primers_file) 
 results = pd.read_csv(results_file)
 ab_results = pd.read_csv('abricate_results.csv', delimiter='\t')
-# Read the contigs
 contigs = sys.argv[4]
 
 # Fill in the original contigs in result df
@@ -75,9 +74,30 @@ def fetch_sequence(accession):
         print(f"Could not fetch the sequence for accession {accession}: {e}")
         # traceback.print_exc()
         return None
-    
-# Apply the function to fetch sequences and add them to the df 
-ab_results['originalSEQUENCE'] = ab_results['ACCESSION'].apply(fetch_sequence)
+
+# # 09/02 
+# # Approach 1 
+# # Create a FASTA file contains the products from the original primer file 
+# with open('originalProduct.fasta', 'w') as f:
+#     for i, row in primers.iterrows():
+#         f.write(f">{row['target_gene']}\n{row['product']}\n")
+
+# # Run Abricate on this FASTA file to check for naming differences 
+# # chmod +x ./run_abricate_ori.sh 
+# run_command(['./run_abricate_ori.sh'])
+
+# # Approach 2 
+# # Create a new copy of primers 
+# primer_info = primers.copy()
+
+# # Create accession column
+# primer_info['accession'] = primer_info['target_gene'].apply(lambda x: x.split('_')[-1])
+
+# Apply the function to fetch sequences and add them to the df
+# primer_info['original_sequence'] = primer_info['accession'].apply(fetch_sequence)
+
+# # Apply the function to fetch sequences and add them to the df 
+# ab_results['originalSEQUENCE'] = ab_results['ACCESSION'].apply(fetch_sequence)
 
 # Define a function that remove the last part from the primers 
 def shorten_target(s):
