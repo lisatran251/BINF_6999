@@ -77,4 +77,4 @@ sbatch --account=def-nricker \
 --mem=1G \
 --job-name=process3 \
 --output=$result_dir/process_final_results_%j.out \
---wrap="source ~/my_venv/bin/activate && python3 process3.py \"$email_address\" \"$primer_file\" final_result.csv \"$input_file\""
+--wrap="source ~/my_venv/bin/activate && python3 process3.py \"$email_address\" \"$input_file\" \"$primer_file\" final_result.csv"

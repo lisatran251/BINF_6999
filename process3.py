@@ -13,8 +13,6 @@ from Bio.SeqRecord import SeqRecord
 
 # How to run:
 # python3 -m venv ~/my_venv
-
-
 # source ~/my_venv/bin/activate
 # pip install pandas numpy biopython
 # python3 process3.py email_address original_fasta_file primer_file result_file 
