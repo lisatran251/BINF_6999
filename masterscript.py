@@ -473,3 +473,5 @@ with open("abricate_only.fasta", "w") as out_file:
 
 # # Run the primers supposed to be found by the program against the contigs to check for mismatches 
 run_command(['./run_blast.sh'])
+
+
