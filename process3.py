@@ -227,7 +227,7 @@ with open("program_only.fasta", "w") as out_file:
         if name in record_ids:
             SeqIO.write(fasta, out_file, "fasta")
 
-# Run abricate at 10% cov using CARD db
+# Run abricate at 80% cov and 80% identity using CARD db
 run_command(['./run_abricate_card.sh'])
 
 # Read ABR results of CARD db 

@@ -34,7 +34,6 @@ results = pd.read_csv(results_file)
 # Assuming df is your DataFrame
 primers['target_gene'] = primers['target_gene'].str.replace('^cfrB', 'cfr_B_', regex=True)
 
-
 # Fill 'F_primer' and 'R_primer' columns based on the value of 'Combination' column
 for i, row in results.iterrows():
     if row['Combination'] == 'F_primers-R_primers':
