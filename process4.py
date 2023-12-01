@@ -16,7 +16,7 @@ from Bio.SeqRecord import SeqRecord
 
 # How to run:
 # python3 -m venv ~/my_venv
-# source ~/my_venv/bin/activate
+# source ~/my_venv/bin/activate2z
 # pip install pandas numpy biopython matplotlib
 # python3 process3.py email_address original_fasta_file primer_file result_file 
 # e.g: python3 process4.py 
