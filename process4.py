@@ -16,7 +16,7 @@ from Bio.SeqRecord import SeqRecord
 
 # How to run:
 # python3 -m venv ~/my_venv
-# source ~/my_venv/bin/activate2z
+# source ~/my_venv/bin/activate
 # pip install pandas numpy biopython matplotlib
 # python3 process3.py email_address original_fasta_file primer_file result_file 
 # e.g: python3 process4.py 
@@ -27,8 +27,11 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', None)
 
+# Depend on the type of result, could be individual file or requires to be combine before using
+result = sys.argv[1]
+
 # Load the DataFrame
-report = pd.read_csv('combined_final_report.csv')
+report = pd.read_csv(result)
 
 # Identify rows where the first column equals 'Record ID'
 rows_to_remove = report.iloc[:, 0] == 'Record ID'
