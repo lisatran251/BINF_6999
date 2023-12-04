@@ -19,7 +19,7 @@ from Bio.SeqRecord import SeqRecord
 # source ~/my_venv/bin/activate
 # pip install pandas numpy biopython matplotlib
 # python3 process3.py email_address original_fasta_file primer_file result_file 
-# e.g: python3 process4.py 
+# e.g: python3 process4.py final_report.csv
 
 # Set the display.max_rows option to print all rows 
 pd.set_option('display.max_rows', None)
@@ -64,7 +64,7 @@ print(f"Number of products found: {total_products}")
 print(f"Number of target genes found (both program and ABR): {num_gene}")
 print(f"Number of products found only by the program: {num_left_only}")
 print(f"Number of products found only by the ABR (primers available): {num_miss}")
-print(f"Number of products found only by the ABR (primers not available: {num_unavai_primer}\n")
+print(f"Number of products found only by the ABR (primers not available): {num_unavai_primer}\n")
 
 # Concatenate the values from F_primer and R_primer columns, excluding the header row
 info = pd.concat([report['F_primer'][1:], report['R_primer'][1:]])

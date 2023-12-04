@@ -78,3 +78,14 @@ sbatch --account=def-nricker \
 --job-name=process3 \
 --output=$result_dir/process_final_results_%j.out \
 --wrap="source ~/my_venv/bin/activate && python3 process3.py \"$email_address\" \"$input_file\" \"$primer_file\" final_result.csv"
+
+# Run third script after the second one is completed 
+sbatch --account=def-nricker \
+--dependency=afterok:$job_id_process3 \
+--time=0-04:00 \
+--nodes=1 \
+--ntasks-per-node=1 \
+--mem=1G \
+--job-name=process4 \
+--output=$result_dir/process_final_results_%j.out \
+--wrap="source ~/my_venv/bin/activate && python3 process3.py \"$email_address\" \"$input_file\" \"$primer_file\" final_result.csv"
