@@ -151,11 +151,9 @@ def process_card_name(name):
 def process_res_name(name):
     if pd.isna(name) or not isinstance(name, str):
         return name.lower() 
-
     # Bypass rule for specific names using the dictionary
     if name in name_exceptions:
         return name_exceptions[name]
-    
     if 'DARTE' in name:
         return name.split('_')[0].replace('-', '').replace('(','').replace(')','').lower()
     else:
@@ -211,13 +209,13 @@ ab_results['Gene Check'] = ab_results['GENE'].apply(process_res_name_ab)
 merged_program_ab = filtered_result.merge(ab_results, how='outer', left_on=['Record ID','Res Name'], right_on=['SEQUENCE','Gene Check'], indicator=True)
 # merged_program_ab.to_csv('merged_program_ab.csv', index=False)
 merged_program_ab = apply_custom_merge(merged_program_ab, 'Res Name', 'Gene Check')
-
 program_only = merged_program_ab[merged_program_ab['_merge'] == 'left_only']
 program_only = program_only.iloc[:, :10]
 
 # Create a set of all record IDs from the 'Record ID' column 
 record_ids = program_only['Record ID'].tolist()
 
+# Open the FASTA file
 fasta_seqs = SeqIO.parse(open(contigs), 'fasta')
 
 # Create new fasta file that contains seqs only found by the program
@@ -412,19 +410,15 @@ def add_fix_name_and_reason(df):
             # If both primer identities are 100% -> partial primers
             fix_name = row['res_gene'] if row['DATABASE'] == 'resfinder' else (row['card_gene'] if row['DATABASE'] == 'card' else 'N/A')
             reason = 'Partial primers'
-
         elif primer1_identity >= 80 and primer2_identity >= 80:
             # If both primer identities are >= 80% -> mismatches
             fix_name = row['res_gene'] if row['DATABASE'] == 'resfinder' else (row['card_gene'] if row['DATABASE'] == 'card' else 'N/A')
             reason = 'Mismatches'
-
         elif (primer1_identity >= 80 and pd.isna(primer2_identity)) or (primer2_identity >= 80 and pd.isna(primer1_identity)):
             # If one primer identity is >= 80% and the other is NaN -> missing primer
             fix_name = row['res_gene'] if row['DATABASE'] == 'resfinder' else (row['card_gene'] if row['DATABASE'] == 'card' else 'N/A')
             reason = 'Missing primer'
-
         return fix_name, reason
-
     # Apply the function to each row of the df 
     df[['fix_name', 'reason']] = df.apply(determine_fix_name_and_reason, axis=1, result_type='expand')
     return df
@@ -453,7 +447,7 @@ final_df = df1_copy.append(df2_copy).append(df3_copy).reset_index(drop=True)
 final_df.to_csv('final_report.csv', index=False)
 #############################################################################################################
 
-
+# Apply for individual assemblies
 # find . -type d -name 'SRR*' -exec sh -c 'find "$0" -name "final_report.csv" -print0 | xargs -0 awk "{print}"' {} \; > combined_final_report.csv
 # find . -type d -name 'SRR*' -exec sh -c 'find "$0" -name "abricate_only_report.csv" -print0 | xargs -0 awk "{print}"' {} \; > combined_abricate_only_report.csv
 
