@@ -7,6 +7,11 @@ import re
 import sys
 import subprocess 
 import traceback
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+import seaborn as sns
 from Bio import SeqIO, Entrez 
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -16,6 +21,7 @@ from Bio.SeqRecord import SeqRecord
 # source ~/my_venv/bin/activate
 # pip install pandas numpy biopython argparse
 # python3 masterscript.py fasta_file primer_file 
+# e.g: python3 masterscript.py testing2.fasta DARTE-QM_primer_design.csv
 
 # Set the display.max_rows option to print all rows 
 pd.set_option('display.max_rows', None)
@@ -226,15 +232,9 @@ results.to_csv('final_result.csv', index=False)
 match = results[results['Qualified?'] == 'Yes']
 nonmatch = results[results['Qualified?'] == 'No']
 
-# Save to separate csv files without the 'Qualified?' column, are these neccessary?
-match.drop(columns=['Qualified?']).to_csv('match.csv', index=False)
-nonmatch.drop(columns=['Qualified?']).to_csv('nonmatch.csv', index=False)
-
-# Set the display.max_rows option to print all rows 
-pd.set_option('display.max_rows', None)
-
 # Provide email to NCBI, maybe turn this into input value later
-Entrez.email = "thuyduye@uoguelph.ca"
+Entrez.email = "lisaa.tran2501@gmail.com"
+contigs = input_file
 
 # Define the function that used to run multiple Shell script 
 def run_command(command):
@@ -248,15 +248,22 @@ def run_command(command):
         # If the return code is 0, command succeeded 
         print(result.stdout)
 
-# Run abricate: abricate --db resfinder --quiet contigs_ex.fasta > abricate_results.csv
-run_command(['./run_abricate.sh'])
+# Run abricate at 10% cov
+run_command(["./run_abricate.sh", contigs])
 
 # Load the data
 results = pd.read_csv('final_result.csv')
+primers = pd.read_csv(primer_file) 
 ab_results = pd.read_csv('abricate_results.csv', delimiter='\t')
 
+# Fill in the original contigs in result df
+sequence_mapping = {record.id: str(record.seq) for record in SeqIO.parse(contigs, "fasta")}
+
+# Map the sequences to the df to create the new column 
+results['originalCONTIG'] = results['Record ID'].map(sequence_mapping)
+
 # Create a df for the final_result
-filtered_result = results[['Record ID', 'Length', 'Combination', 'F_Product', 'F_primer', 'R_primer', 'Target']]
+filtered_result = results[['Record ID', 'Length', 'Combination', 'F_Product', 'F_primer', 'R_primer', 'Target', 'originalCONTIG']]
 filtered_result = filtered_result.dropna(subset=['F_Product'])
 filtered_result = filtered_result.dropna(subset=['Target'])
 
@@ -264,7 +271,7 @@ filtered_result = filtered_result.dropna(subset=['Target'])
 ab_results['LENGTH'] = ab_results['END'] - ab_results['START']
 
 # Create a df for abricate_result
-ab_results = ab_results[['SEQUENCE', 'LENGTH', 'STRAND', 'GENE', '%COVERAGE', '%IDENTITY', 'ACCESSION', 'PRODUCT']]
+ab_results = ab_results[['SEQUENCE', 'LENGTH', 'STRAND', 'GENE', '%COVERAGE', '%IDENTITY', 'DATABASE', 'ACCESSION', 'PRODUCT']]
 
 # Define a function to fetch sequences
 def fetch_sequence(accession):
@@ -276,126 +283,146 @@ def fetch_sequence(accession):
         print(f"Could not fetch the sequence for accession {accession}: {e}")
         # traceback.print_exc()
         return None
-    
-# Apply the function to fetch sequences and add them to the df 
-ab_results['originalSEQUENCE'] = ab_results['ACCESSION'].apply(fetch_sequence)
 
-# Define a function that remove the last part from the primers 
-def shorten_target(s):
-    if ':' in s:
-        return s
-    s = s.rsplit('_', 1)[0]
-    if not s[-1].isdigit():
-        s = s.rsplit('_', 1)[0]
-    return s
+# Create a new copy of primers 
+primer_info = primers.copy()
 
-# Use the function to create the new column with shorter name 
-filtered_result['shortTarget'] = filtered_result['Target'].apply(shorten_target)
+# Write a FASTA file 
+def write_to_fasta(filename, names, seqs):
+    with open(filename, 'w') as f:
+        for name, seq in zip(names, seqs):
+            f.write(f">{name}\n{seq}\n")
 
-# Function to create 'shortProduct'
-def create_short_product(x):
-    if ':' in x:
-        return x.split(':')[0].split('_')[0]
-    elif re.search(r'_\d+$', x):  # If ends with underscore and digits
-        return re.sub(r'_\d+$', '', x)
-    elif re.search(r'_-\w+_\d+$', x):  # If has pattern '_-word_digit'
-        return re.sub(r'_\d+$', '', x)
-    elif re.search(r'\d+$', x):  # If ends with digits
-        return re.sub(r'\d+$', '', x)
+# Rows where 'Record ID' contains ':DARTE'
+darte_rows = primer_info[primer_info['target_gene'].str.contains(':DARTE')]
+
+# Rows where 'Record ID' doesn't contain ':DARTE'
+non_darte_rows = primer_info[~primer_info['target_gene'].str.contains(':DARTE')]
+
+# Write to 'naming_card.fa'
+write_to_fasta('naming_card.fa', darte_rows['target_gene'], darte_rows['product'])
+
+# Write to 'naming_res.fa'
+write_to_fasta('naming_res.fa', non_darte_rows['target_gene'], non_darte_rows['product'])
+
+# Trimming name
+def trim_name(name):
+    # If name contains ':DARTE' or doesn't contain '_', return the original name
+    if ':DARTE' in name or '_' not in name:
+        return name
+    # Split by underscore and join all parts except the last one
+    return '_'.join(name.split('_')[:-1])
+
+# Apply the function to the 'name' column to create 'shortName'
+primer_info['short_target_gene'] = primer_info['target_gene'].apply(trim_name)
+
+# Create a dictionary of exceptions
+name_exceptions = {
+    'tet_44__1_NZ_ABDU01000081': 'tet44',
+    'tetB_P__1_NC_010937': 'tetbp',
+    'erm_X__4_NC_005206': 'ermx',
+    'aac_6__-Iaa_1_NC_003197': 'aac6iaa',
+    'erm_44_v_1_LN623525': 'erm44',
+    'aac_6__-IIc_1_NC_012555': 'aac6iic'
+}
+
+def process_card_name(name):
+    if pd.isna(name) or not isinstance(name, str):
+        return name 
+    # Bypass rule for specific names using the dictionary
+    if name in name_exceptions:
+        return name_exceptions[name]
+    if 'DARTE' in name:
+        return name.split('_')[0].replace('-', '').replace('(','').replace(')','').lower()
     else:
-        return x
+        if name.startswith('bla'):
+            # Remove 'bla' from the start of the name
+            name_without_bla = name[3:]
+            # Keep only the uppercase characters from the remaining string
+            uppercase_only = ''.join([char for char in name_without_bla if char.isupper()])
+            # Convert the uppercase characters to lowercase
+            lowercase = uppercase_only.lower()
+            # Split at the last underscore, take the first part, remove all underscores and hyphens, and convert to lowercase
+            remaining = name_without_bla.rsplit('_', 1)[0].replace('_', '').replace('-', '').replace('(','').replace(')','').lower()
+            return lowercase + remaining[len(lowercase):]  # Combine the lowercase letters with the rest of the string
+        else:
+            # Split at the last underscore and take the first part
+            first_split = name.rsplit('_', 1)[0]
+            # Split the first part again at the second-to-last underscore
+            second_split = first_split.rsplit('_', 1)[0]
+            # Remove all remaining underscores and hyphens, and convert to lowercase
+            cleaned_name = second_split.replace('_', '').replace('-', '').replace('(','').replace(')','').lower()
+            return cleaned_name
 
-# Create 'shortProduct' column
-filtered_result['shortProduct'] = filtered_result['shortTarget'].apply(create_short_product)
+def process_res_name(name):
+    if pd.isna(name) or not isinstance(name, str):
+        return name.lower() 
+    # Bypass rule for specific names using the dictionary
+    if name in name_exceptions:
+        return name_exceptions[name]
+    if 'DARTE' in name:
+        return name.split('_')[0].replace('-', '').replace('(','').replace(')','').lower()
+    else:
+        # Split at the last underscore and take the first part
+        first_split = name.rsplit('_', 1)[0]
+        # Split the first part again at the second-to-last underscore
+        second_split = first_split.rsplit('_', 1)[0]
+        # Remove all remaining underscores and hyphens, and convert to lowercase
+        cleaned_name = second_split.replace('_', '').replace('-', '').replace('(','').replace(')','').lower()
+        return cleaned_name
 
-# Create a copy of primer df  
-filtered_primer = primers.copy()
+# Apply the function to the 'short_target_gene' column to create 'card_name'
+primer_info['card_gene'] = primer_info['short_target_gene'].apply(process_card_name)
+primer_info['res_gene'] = primer_info['short_target_gene'].apply(process_res_name)
 
-# Create a new column that convert the name of the primer to shorter name 
-filtered_primer['shortTarget'] = filtered_primer['target_gene'].apply(shorten_target)
+filtered_result['Card Name'] = filtered_result['Target'].apply(process_card_name)
+filtered_result['Res Name'] = filtered_result['Target'].apply(process_res_name)
 
-# Define a function to replace every "'" with "_"
-def replace_chars(s):
-    return re.sub(r"[\(''\)]", "_", s)
+def process_res_name_ab(name):
+    # Remove everything after the last '_'
+    short_name = name.rsplit('_', 1)[0].lower()
+    # Remove specified characters
+    for char in ['_', '-', '(', ')', "'"]:
+        short_name = short_name.replace(char, '').lower()
+    return short_name
+
+def process_card_name_ab(name):
+    # If there are two underscores, take only the part after the last '_'
+    if name.count('_') == 2:
+        name = name.rsplit('_', 1)[-1]
+    # Remove specified characters
+    for char in ['_', '-', '(', ')', "'"]:
+        name = name.replace(char, '').lower()
+    return name
+
+# General function to check if one column value is a substring of another
+def is_substring(row, col1, col2):
+    # Check if either value is NaN
+    if pd.isna(row[col1]) or pd.isna(row[col2]):
+        return False
+    # Ensure both values are strings
+    return str(row[col1]) in str(row[col2])
+
+# Function to apply the custom merge logic
+def apply_custom_merge(df, left_col, right_col):
+    df['_merge'] = df.apply(lambda row: 'both' if is_substring(row, right_col, left_col) else row['_merge'], axis=1)
+    return df
 
 # Apply the function to each string in the 'GENE' column
-ab_results['prgGENE'] = ab_results['GENE'].apply(replace_chars)
-
-# Apply the function to each string in the 'PRODUCT' column 
-ab_results['prgPRODUCT'] = ab_results['PRODUCT'].apply(replace_chars)
+ab_results['Gene Check'] = ab_results['GENE'].apply(process_res_name_ab)
 
 # Create a df that merges the abricate results and original results
-merged_program_ab = filtered_result.merge(ab_results, how='outer', left_on=['Record ID','shortProduct'], right_on=['SEQUENCE','prgPRODUCT'], indicator=True)
-
-# Create 'Gene Match?' column
-merged_program_ab['Gene Match?'] = merged_program_ab.apply(lambda row: 'Yes' if row['shortProduct'] == row['prgPRODUCT'] else 'No', axis=1)
-
-# Create 'Variant Match?' column
-def check_variant_match(row):
-    if row['Gene Match?'] == 'Yes':
-        # Extract the trailing number from 'shortTarget' and 'prgGENE'
-        short_target_number = re.search(r'\d+$', row['shortTarget'])
-        prg_gene_number = re.search(r'\d+$', row['prgGENE'])
-        
-        if short_target_number is not None and prg_gene_number is not None and short_target_number.group() == prg_gene_number.group():
-            return 'Yes'
-        else:
-            return 'No'
-    else:
-        return 'No'
-
-merged_program_ab['Variant Match?'] = merged_program_ab.apply(check_variant_match, axis=1)
-# Final report after merging
-merged_program_ab.to_csv('merged_prog_ab.csv', index=False)
-
-# Rows in program not in abricate
+merged_program_ab = filtered_result.merge(ab_results, how='outer', left_on=['Record ID','Res Name'], right_on=['SEQUENCE','Gene Check'], indicator=True)
+# merged_program_ab.to_csv('merged_program_ab.csv', index=False)
+merged_program_ab = apply_custom_merge(merged_program_ab, 'Res Name', 'Gene Check')
 program_only = merged_program_ab[merged_program_ab['_merge'] == 'left_only']
-program_only = program_only.iloc[:, :9]
-program_only.to_csv('program_only.csv', index=False)
+program_only = program_only.iloc[:, :10]
 
-# Rows in abricate not in program
-abricate_only = merged_program_ab[merged_program_ab['_merge'] == 'right_only']
-abricate_only = abricate_only.iloc[:, 9:20]
-abricate_only.to_csv('abricate_only.csv', index=False)
-
-# Rows found in both progsram ands abricate
-both_program_ab_result = merged_program_ab[merged_program_ab['_merge'] == 'both']
-both_program_ab_result.drop('_merge', axis=1).to_csv('both_program_ab_result.csv', index=False)
-
-## Scenario 1: target gene found - explore variants, artifacts etc. 
-# Select rows from merged_program_ab where 'Gene Match?' = 'Yes' and 'Variant Match?' = 'No'
-filtered_merged_program_ab = merged_program_ab[(merged_program_ab['Gene Match?'] == 'Yes') & (merged_program_ab['Variant Match?'] == 'No')]
-filtered_merged_program_ab.to_csv('filtered_merged_program_ab.csv', index=False)
-
-# Define a function to get the sequence from the original contigs 
-def get_sequence(record_id):    
-    with open(input_file, 'r') as f:
-        for record in SeqIO.parse(f, 'fasta'):
-            if record.id == record_id:
-                return str(record.seq)
-    return None 
-
-# Create a new column in df to contain the contigs, can create a copy to avoid warning (opt)
-filtered_merged_program_ab['Contigs'] = filtered_merged_program_ab['Record ID'].apply(get_sequence)
-
-# Write a fasta include Record ID and Contigs
-with open('variants_originalCONTIG.fasta', 'w') as f:
-    for index, row in filtered_merged_program_ab.iterrows():
-        f.write(f">seq_{index}_originalCONTIGS\n{row['Contigs']}\n")
-
-# Write a fasta include Record ID and original sequence from Abricate program
-with  open('variants_originalSEQUENCE.fasta', 'w') as f:
-    for index, row in filtered_merged_program_ab.iterrows():
-        f.write(f">seq_{index}_originalSEQUENCE\n{row['originalSEQUENCE']}\n")
-
-## Run cdhit in Unix: cd-hit-est -i variants.fasta -o cdhit_rs -c 0.9 -n 10 -d 0
-# The main reason is the product is very short while the sequence achieved using accession number is much longer. Therefore, when run cd-hit which based on the similarity between two sequences and the identiy % much be higher than 70%, therefore we may want to run BLAST instead.  
-
-# ## Scenario 2: found in program not in abricate- re-run with lower %identity on abricate
 # Create a set of all record IDs from the 'Record ID' column 
 record_ids = program_only['Record ID'].tolist()
 
-fasta_seqs = SeqIO.parse(open(input_file), 'fasta')
+# Open the FASTA file
+fasta_seqs = SeqIO.parse(open(contigs), 'fasta')
 
 # Create new fasta file that contains seqs only found by the program
 with open("program_only.fasta", "w") as out_file:
@@ -404,65 +431,72 @@ with open("program_only.fasta", "w") as out_file:
         if name in record_ids:
             SeqIO.write(fasta, out_file, "fasta")
 
-# Re-run Abricate with lower coverage: abricate --db resfinder --quiet --mincov 10 program_only.fasta > program_only_ab10_results.csv
-run_command(['./run_abricate_10.sh'])
+# Run abricate at 80% cov and 80% identity using CARD db
+run_command(['./run_abricate_card.sh'])
 
-# Load files
-program_only_ab10_results = pd.read_csv('program_only_ab10_results.csv', delimiter='\t')
+# Read ABR results of CARD db 
+ab_results_card = pd.read_csv('abricate_results_card.csv', delimiter='\t')
+
+# Create a length column for abricate data
+ab_results_card['LENGTH'] = ab_results_card['END'] - ab_results_card['START']
+
+# Create a df for abricate_result
+ab_results_card = ab_results_card[['SEQUENCE', 'LENGTH', 'STRAND', 'GENE', '%COVERAGE', '%IDENTITY', 'DATABASE', 'ACCESSION', 'PRODUCT']]
 
 # Apply the function to each string in the 'GENE' column
-program_only_ab10_results['prgGENE'] = program_only_ab10_results['GENE'].apply(replace_chars)
+ab_results_card['Gene Check'] = ab_results_card['GENE'].apply(process_card_name_ab)
 
-# Apply the function to each string in the 'PRODUCT' column 
-program_only_ab10_results['prgPRODUCT'] = program_only_ab10_results['PRODUCT'].apply(replace_chars)
+# Matching 'No' from Resfinder but may be found in CARD
+matched_df = program_only.merge(ab_results_card, how='outer', left_on=['Record ID','Card Name'], right_on=['SEQUENCE','Gene Check'], indicator=True)
+matched_df = apply_custom_merge(matched_df, 'Card Name', 'Gene Check')
 
-# Merge to find similar seqs between the ones program found and abricate (10% coverage) found
-merged_program_only_ab10_results = program_only.merge(program_only_ab10_results, how='outer', left_on=['Record ID','shortProduct'], right_on=['SEQUENCE','prgPRODUCT'], indicator=True)
+# Dropping rows where 'Gene Match?' is 'No'
+merged_program_ab = merged_program_ab[merged_program_ab['_merge'] != 'left_only']
 
-# Create 'Gene Match?' column
-merged_program_only_ab10_results['Gene Match?'] = merged_program_only_ab10_results.apply(lambda row: 'Yes' if row['shortProduct'] == row['prgPRODUCT'] else 'No', axis=1)
+# Concat to the final df 
+merged_program_ab = pd.concat([merged_program_ab, matched_df], ignore_index=True)
+# merged_program_ab.to_csv('merged_program_ab.csv', index=False)
 
-# Create 'Variant Match?' column 
-merged_program_only_ab10_results['Variant Match?'] = merged_program_only_ab10_results.apply(check_variant_match, axis=1)
-
-# Export the results to CSV file 
-merged_program_only_ab10_results.to_csv('merged_program_only_ab10_both_id_and_gene.csv', index=False)
-
-# Print out df includes matches 
-merged_program_only_ab10_match = merged_program_only_ab10_results[merged_program_only_ab10_results['_merge'] == 'both']
-merged_program_only_ab10_match.to_csv('merged_program_only_ab10_match.csv', index=False)
-
-# Print out df includes non-matches 
-merged_program_only_ab10_nonmatch = merged_program_only_ab10_results[merged_program_only_ab10_results['_merge'].isin(['left_only', 'right_only'])]
-merged_program_only_ab10_nonmatch.to_csv('merged_program_only_ab10_nonmatch.csv', index=False)
-
-# Eventually should create a table to tell the genes, variants found
-
-# Scenario 3: found in abricate but not in the program- extracting contigs using Unix, identifying associated primers, and then using NCBI for alignment of the primers with the extracted contigs
-# Put the list of seqs that needed to be compare into a .txt file: abricateOnly.txt
-# seqtk subseq contigs_ex.fasta abricateOnly.txt > abricateOnly.fasta # This will print out all the seqs for the comparison 
+# Rows in abricate not in program
+abricate_only = merged_program_ab[merged_program_ab['_merge'] == 'right_only']
+abricate_only = abricate_only.iloc[:, 10:20]
+# abricate_only.to_csv('abricate_only.csv', index=False)
 
 # Create 'Reason' column in abricate_only df
-# If 'prgGENE' is found in 'filtered_primer', fill with 'Mismatches', else 'Primers not found'
-abricate_only['Reason'] = abricate_only['prgGENE'].apply(lambda x: 'Mismatches' if x in filtered_primer['shortTarget'].values else 'Primers not found')
-abricate_only.to_csv('abricate_only_and_primers.csv', index=False)
+# If 'prgGENE' is found in 'primer_info', fill with 'Mismatches', else 'Primers not found'
+abricate_only['Reason'] = abricate_only['Gene Check'].apply(lambda x: 'Check Report' if x in primer_info['res_gene'].values or x in primer_info['card_gene'].values else 'Primer not available')
 
 # Filter out rows with 'Reason' == 'Mismatches' in abricate_only dataframe
-mismatches_primers_df = abricate_only[abricate_only['Reason'] == 'Mismatches']
+mismatches_primers_df = abricate_only[abricate_only['Reason'] == 'Check Report']
 
-# # Get corresponding 'F_truseq' and 'R_truseq' from filtered_primer dataframe for each 'prgGENE' in mismatches_primers_df
-mismatches_primers_df = mismatches_primers_df.merge(filtered_primer[['target_gene', 'F_truseq', 'R_truseq', 'shortTarget']], left_on='prgGENE', right_on='shortTarget', how='inner')
+# Split the dataframe based on database values
+resfinder_df = mismatches_primers_df[mismatches_primers_df['DATABASE'] == 'resfinder']
+card_df = mismatches_primers_df[mismatches_primers_df['DATABASE'] == 'card']
 
-# Write all the primers in a single line in the text file
+# Merge based on database
+merged_resfinder = resfinder_df.merge(primer_info[['target_gene', 'F_truseq', 'R_truseq', 'res_gene', 'card_gene']], 
+                                      left_on='Gene Check', right_on='res_gene', how='inner')
+
+merged_card = card_df.merge(primer_info[['target_gene', 'F_truseq', 'R_truseq', 'res_gene', 'card_gene']], 
+                            left_on='Gene Check', right_on='card_gene', how='inner')
+
+# Concatenate the merged results
+mismatches_primers_df = pd.concat([merged_resfinder, merged_card], ignore_index=True)
+
+# Calculate reverse complements for each row in mismatches_primers_df
+mismatches_primers_df['F_truseq_reverse_complement'] = mismatches_primers_df['F_truseq'].apply(lambda x: str(Seq(x).reverse_complement()))
+mismatches_primers_df['R_truseq_reverse_complement'] = mismatches_primers_df['R_truseq'].apply(lambda x: str(Seq(x).reverse_complement()))
+
+# Write all the primers (original and reverse complemented) in a single line in the text file
 with open('mismatches_primers.txt', 'w') as file:
-    mismatches_primers = ', '.join([f"{row['F_truseq']}, {row['R_truseq']}" for _, row in mismatches_primers_df.iterrows()])
+    mismatches_primers = ', '.join([f"{row['F_truseq']}, {row['R_truseq']}, {row['F_truseq_reverse_complement']}, {row['R_truseq_reverse_complement']}" for _, row in mismatches_primers_df.iterrows()])
     file.write(mismatches_primers)
 
 # Create a set of all record IDs from the 'Record ID' column 
 record_ids = mismatches_primers_df['SEQUENCE'].tolist()
 
 # Read the contigs
-fasta_seqs = SeqIO.parse(open(input_file), 'fasta')
+fasta_seqs = SeqIO.parse(open(contigs), 'fasta')
 
 # Create new fasta file that contains only seqs found in program
 with open("abricate_only.fasta", "w") as out_file:
@@ -471,7 +505,462 @@ with open("abricate_only.fasta", "w") as out_file:
         if name in record_ids:
             SeqIO.write(fasta, out_file, "fasta")
 
-# # Run the primers supposed to be found by the program against the contigs to check for mismatches 
+# Run the primers supposed to be found by the program against the contigs to check for mismatches 
 run_command(['./run_blast.sh'])
 
+# Analyze the results of a BLAST search
+def parse_blast_report(blast_report):
+    blast_results = {}
+    with open(blast_report, 'r') as file:
+        current_seq = None
+        current_query = None  # Variable to store the current Query sequence
+        for line in file:
+            if line.startswith('>'):
+                current_seq = line.split()[1]  
+                blast_results[current_seq] = {'seqs': [], 'queries': [], 'identities': []}
+            elif "Identities" in line and current_seq:
+                identity_match = re.search(r'Identities = (\d+/\d+) \((\d+)%\)', line)
+                if identity_match:
+                    identity = identity_match.group(2) + "%"  # Keeping only the percentage
+                    blast_results[current_seq]['identities'].append(identity)
+            elif 'Query' in line and current_seq:
+                query_match = re.search(r'Query\s+\d+\s+([A-Za-z-]+)\s+\d+', line)
+                if query_match:
+                    current_query = query_match.group(1)  # Extract the Query sequence
+            elif 'Sbjct' in line and current_seq and current_query:
+                sbjct_match = re.search(r'Sbjct\s+\d+\s+([A-Za-z-]+)\s+\d+', line)
+                if sbjct_match:
+                    sbjct_seq = sbjct_match.group(1)
+                    blast_results[current_seq]['seqs'].append(sbjct_seq)
+                    blast_results[current_seq]['queries'].append(current_query)  # Add the corresponding Query sequence
+    return blast_results
+
+# Update more info of mismatches
+def update_primers_df(blast_results, mismatches_df):
+    # Initialize new columns
+    mismatches_df['primer 1'] = ''
+    mismatches_df['primer identities 1'] = ''
+    mismatches_df['primer 2'] = ''
+    mismatches_df['primer identities 2'] = ''
+
+    for index, row in mismatches_df.iterrows():
+        sequence_id = row['SEQUENCE']
+        if sequence_id in blast_results:
+            for sbjct_seq, identity, query_seq in zip(blast_results[sequence_id]['seqs'], 
+                                                      blast_results[sequence_id]['identities'], 
+                                                      blast_results[sequence_id]['queries']):
+                # Check for the first primer
+                if sbjct_seq == row['F_truseq']:
+                    mismatches_df.at[index, 'primer 1'] = query_seq
+                    mismatches_df.at[index, 'primer identities 1'] = identity
+                    if row['R_truseq'] in blast_results[sequence_id]['seqs']:
+                        pair_index = blast_results[sequence_id]['seqs'].index(row['R_truseq'])
+                        mismatches_df.at[index, 'primer 2'] = blast_results[sequence_id]['queries'][pair_index]
+                        mismatches_df.at[index, 'primer identities 2'] = blast_results[sequence_id]['identities'][pair_index]
+                elif sbjct_seq == row['R_truseq']:
+                    mismatches_df.at[index, 'primer 1'] = query_seq
+                    mismatches_df.at[index, 'primer identities 1'] = identity
+                    if row['F_truseq'] in blast_results[sequence_id]['seqs']:
+                        pair_index = blast_results[sequence_id]['seqs'].index(row['F_truseq'])
+                        mismatches_df.at[index, 'primer 2'] = blast_results[sequence_id]['queries'][pair_index]
+                        mismatches_df.at[index, 'primer identities 2'] = blast_results[sequence_id]['identities'][pair_index]
+                # Similar checks for reverse complements
+                elif sbjct_seq == row['F_truseq_reverse_complement']:
+                    mismatches_df.at[index, 'primer 1'] = query_seq
+                    mismatches_df.at[index, 'primer identities 1'] = identity
+                    if row['R_truseq_reverse_complement'] in blast_results[sequence_id]['seqs']:
+                        pair_index = blast_results[sequence_id]['seqs'].index(row['R_truseq_reverse_complement'])
+                        mismatches_df.at[index, 'primer 2'] = blast_results[sequence_id]['queries'][pair_index]
+                        mismatches_df.at[index, 'primer identities 2'] = blast_results[sequence_id]['identities'][pair_index]
+                elif sbjct_seq == row['R_truseq_reverse_complement']:
+                    mismatches_df.at[index, 'primer 1'] = query_seq
+                    mismatches_df.at[index, 'primer identities 1'] = identity
+                    if row['F_truseq_reverse_complement'] in blast_results[sequence_id]['seqs']:
+                        pair_index = blast_results[sequence_id]['seqs'].index(row['F_truseq_reverse_complement'])
+                        mismatches_df.at[index, 'primer 2'] = blast_results[sequence_id]['queries'][pair_index]
+                        mismatches_df.at[index, 'primer identities 2'] = blast_results[sequence_id]['identities'][pair_index]
+    return mismatches_df
+
+# Parsing the blast report
+blast_results = parse_blast_report("abricate_only_blast_report.txt")
+mismatches_primers_df = update_primers_df(blast_results, mismatches_primers_df)
+# print(mismatches_primers_df)
+
+# Removing the percentage sign from the 'primer identities' columns
+mismatches_primers_df['primer identities 1'] = mismatches_primers_df['primer identities 1'].str.replace('%', '')
+mismatches_primers_df['primer identities 2'] = mismatches_primers_df['primer identities 2'].str.replace('%', '')
+
+# Converting the 'primer identities' columns to numeric.
+mismatches_primers_df['primer identities 1'] = pd.to_numeric(mismatches_primers_df['primer identities 1'], errors='coerce')
+mismatches_primers_df['primer identities 2'] = pd.to_numeric(mismatches_primers_df['primer identities 2'], errors='coerce')
+
+# Add 'fix_name' and 'reason' columns to a df based on primer identity values
+def add_fix_name_and_reason(df):
+    def determine_fix_name_and_reason(row):
+        # Extract primer identity and primer values from the row
+        primer1_identity = row['primer identities 1']
+        primer2_identity = row['primer identities 2']
+        primer1 = row['primer 1']
+        primer2 = row['primer 2']
+        fix_name = 'N/A'
+        reason = 'N/A'
+
+        # Convert identity values to integers, except NaN 
+        if not pd.isna(primer1_identity):
+            primer1_identity = int(float(primer1_identity))
+        if not pd.isna(primer2_identity):
+            primer2_identity = int(float(primer2_identity))
+
+        # Determine 'fix_name' and 'reason' based on primer identity values and database 
+        if primer1_identity == 100 and primer2_identity == 100:
+            # If both primer identities are 100% -> partial primers
+            fix_name = row['res_gene'] if row['DATABASE'] == 'resfinder' else (row['card_gene'] if row['DATABASE'] == 'card' else 'N/A')
+            reason = 'Partial primers'
+        elif primer1_identity >= 80 and primer2_identity >= 80:
+            # If both primer identities are >= 80% -> mismatches
+            fix_name = row['res_gene'] if row['DATABASE'] == 'resfinder' else (row['card_gene'] if row['DATABASE'] == 'card' else 'N/A')
+            reason = 'Mismatches'
+        elif (primer1_identity >= 80 and pd.isna(primer2_identity)) or (primer2_identity >= 80 and pd.isna(primer1_identity)):
+            # If one primer identity is >= 80% and the other is NaN -> missing primer
+            fix_name = row['res_gene'] if row['DATABASE'] == 'resfinder' else (row['card_gene'] if row['DATABASE'] == 'card' else 'N/A')
+            reason = 'Missing primer'
+        return fix_name, reason
+    # Apply the function to each row of the df 
+    df[['fix_name', 'reason']] = df.apply(determine_fix_name_and_reason, axis=1, result_type='expand')
+    return df
+
+# Add 'fix_name' and 'reason' columns to the df
+df = add_fix_name_and_reason(mismatches_primers_df)
+df.to_csv('abricate_only_report.csv', index=False)
+
+# Create copies of the dataframes
+df1_copy = merged_program_ab[merged_program_ab['_merge'] == 'both'].copy()
+df2_copy = merged_program_ab[merged_program_ab['_merge'] == 'left_only'].copy()
+df3_copy = abricate_only.copy()
+
+# Add the 'extra note' column to each copy without specifying a name
+df1_copy["Location"] = 'found in both program and ABR'
+df2_copy["Location"] = 'only found in program'
+df3_copy["Location"] = 'only found in ABR'
+
+# Assign 'right_only' to the '_merge' column of df3_copy
+df3_copy['_merge'] = 'right_only'
+
+# Append the dfs 
+final_df = df1_copy.append(df2_copy).append(df3_copy).reset_index(drop=True)
+
+# Convert to final reports
+final_df.to_csv('final_report.csv', index=False)
+#############################################################################################################
+
+# Apply for individual assemblies
+# find . -type d -name 'SRR*' -exec sh -c 'find "$0" -name "final_report.csv" -print0 | xargs -0 awk "{print}"' {} \; > combined_final_report.csv
+# find . -type d -name 'SRR*' -exec sh -c 'find "$0" -name "abricate_only_report.csv" -print0 | xargs -0 awk "{print}"' {} \; > combined_abricate_only_report.csv
+
+# Depend on the type of result, could be individual file or requires to be combine before using
+report = pd.read_csv('final_report.csv')
+
+# Read the primer file 
+ori_primer = pd.read_csv(primer_file)
+
+output_file = open('analysis_result.txt', 'w')
+## Apply this for multiple individual assemblies
+## Prepare an empty DataFrame to hold all combined data
+# report = pd.DataFrame()
+
+## Path to the parent directory containing all your 'SRR' directories
+# parent_directory = '.'
+
+## Loop through each directory in the parent directory
+# for directory in os.listdir(parent_directory):
+#     if directory.startswith('SRR'):
+#         # Construct the full path to the 'final_report.csv' file
+#         file_path = os.path.join(parent_directory, directory, 'final_report.csv')
+        
+#         # Check if the file exists to avoid errors
+#         if os.path.exists(file_path):
+#             # Read the file into a DataFrame
+#             df = pd.read_csv(file_path)
+#             # Add a new column with the name of the directory (sample name)
+#             df['Sample'] = directory
+#             # Append this DataFrame to the combined DataFrame
+#             report = report.append(df, ignore_index=True)
+
+## Identify rows where the first column equals 'Record ID'
+# rows_to_remove = report.iloc[:, 0] == 'Record ID'
+
+## Remove these rows
+# report = report[~rows_to_remove]
+
+# Now proceed with the rest of your operations
+report = report.drop('originalCONTIG', axis=1)
+# report.rename(columns={report.columns[20]: 'Location'}, inplace=True)
+# report.to_csv('short_combined_final_report.csv', index=False)
+report_for_plot = report.copy()
+
+# Write a .txt file results
+output_file = open('analysis_result.txt', 'w')
+
+# Count total products found 
+total_products = len(report.index)
+
+# Count the number of products found by both program and ABR
+num_gene = report[report['_merge'] == 'both'].shape[0]
+
+# Count the number of products only found by the program
+num_left_only = report[report['_merge'] == 'left_only'].shape[0]
+
+# Count the number of products only found by ABR (w or w/o primers)
+num_unavai_primer = report[(report['_merge'] == 'right_only') & (report['Reason'] == 'Primer not available')].shape[0]
+num_miss = report[(report['_merge'] == 'right_only') & (report['Reason'] != 'Primer not available')].shape[0]
+
+# Categories
+categories = ['Both', 'Program Only', 'ABR Only (primers available)', 'ABR Only (primers not available)']
+
+# Counts
+counts = [num_gene, num_left_only, num_unavai_primer, num_miss]
+
+# Creating the bar chart
+plt.figure(figsize=(10, 6))
+plt.bar(categories, counts, color=['blue', 'green', 'red', 'orange'])
+
+# print the result
+print(f"Analysis Summarization", file=output_file)
+print(f"Number of products found: {total_products}", file=output_file)
+print(f"Number of target genes found (both program and ABR): {num_gene}", file=output_file)
+print(f"Number of products found only by the program: {num_left_only}", file=output_file)
+print(f"Number of products found only by the ABR (primers available): {num_miss}", file=output_file)
+print(f"Number of products found only by the ABR (primers not available): {num_unavai_primer}\n", file=output_file)
+
+# Concatenate the values from F_primer and R_primer columns, excluding the header row
+info = pd.concat([report['F_primer'][1:], report['R_primer'][1:]])
+
+# Count the frequency of each primer
+primer_freq = info.value_counts()
+primer_freq_df = primer_freq.reset_index() 
+
+# Print primers found and their counts
+primer_freq_df.columns = ['Primer', 'Frequency']
+print(primer_freq_df, file=output_file)
+# primer_freq_df.to_csv('primer_freq_df.csv', index=False)
+
+# Combine 'F_truseq' and 'R_truseq' columns
+combined_primers = pd.concat([ori_primer['F_truseq'], ori_primer['R_truseq']]).unique()
+
+# Convert the primer_freq_df 'Primer' column to a set for faster lookup
+primer_freq_set = set(primer_freq_df['Primer'])
+
+# Find primers not found in primer_freq_df
+not_found_primers = [primer for primer in combined_primers if primer not in primer_freq_set]
+
+# Print the number of primers not found and the primers themselves
+print(f"\nNumber of primers not found: {len(not_found_primers)}", file=output_file)
+
+# Join the primers into a single string separated by commas
+primers_string = ', '.join(not_found_primers)
+print("Unfound primers:", file=output_file)
+print(primers_string, file=output_file)
+
+# Count the frequency of each primer in F_primer and R_primer columns
+f_primer_freq = report['F_primer'].value_counts().reset_index()
+f_primer_freq.columns = ['Primer', 'F_Frequency']
+
+r_primer_freq = report['R_primer'].value_counts().reset_index()
+r_primer_freq.columns = ['Primer', 'R_Frequency']
+
+# For comparison
+primer_freq_combined = pd.merge(f_primer_freq, r_primer_freq, on='Primer', how='outer')
+print(f"\n", file=output_file)
+print(primer_freq_combined, file=output_file)
+
+# Count the frequency of each target gene
+target_freq = report['Gene Check'].value_counts()
+target_freq_df = target_freq.reset_index()
+print(f"\n", file=output_file)
+target_freq_df.columns = ['Target Gene', 'Frequency']
+
+# Print target genes and their frequencies
+print(target_freq_df, file=output_file)
+
+# Visualization 
+# Store counts in a dictionary
+product_counts = {
+    'Category': ['Both', 'Program Only', 'ABR Only (primers available)', 'ABR Only (primers not available)'],
+    'Count': [num_gene, num_left_only, num_miss, num_unavai_primer]
+}
+
+# Convert dictionary to df
+df_product_counts = pd.DataFrame(product_counts) 
+ 
+# Plotting the product counts
+plt.figure(figsize=(15, 10))  # Increase figure width as needed
+plt.bar(categories, counts, color=['blue', 'green', 'red', 'orange'])
+plt.title('Comparison of Product Findings')
+plt.xlabel('Category')
+plt.ylabel('Counts')
+plt.savefig('product_count.png')
+plt.close()  
+
+# Assign unique identifiers to each primer
+f_primer_ids = {primer: f'F{i}' for i, primer in enumerate(report['F_primer'].unique())}
+r_primer_ids = {primer: f'R{i}' for i, primer in enumerate(report['R_primer'].unique())}
+
+report['F_primer_id'] = report['F_primer'].map(f_primer_ids)
+report['R_primer_id'] = report['R_primer'].map(r_primer_ids)
+
+# Filter the data for 'found in both program and ABR'
+filtered_data = report[report['Location'] == 'found in both program and ABR']
+
+# Create a pivot table
+pivot_table = pd.pivot_table(filtered_data, values='Record ID', 
+                             index='F_primer_id', columns='R_primer_id', 
+                             aggfunc='count', fill_value=0)  
+
+primer_freq_combined.fillna(0, inplace=True) 
+
+# Plotting a bar plot with counts as the x-axis
+plt.figure(figsize=(10, 6))
+plt.bar(target_freq_df['Target Gene'], target_freq_df['Frequency'], alpha=0.7)
+
+# Remove the x-tick labels to avoid overlaps
+plt.xticks([])
+# Labels and title
+plt.xlabel('Target Genes')
+plt.ylabel('Counts')
+plt.title('Bar Plot of Target Gene Counts')
+plt.savefig('target_frq.png')
+plt.close() 
+
+# Assuming combined_df is your DataFrame
+# gene_counts = report.groupby(['Gene Check', 'Sample']).size().unstack(fill_value=0)
+
+# Sort the DataFrame to get the top 30 primers by frequency
+top_genes = target_freq_df.sort_values(by='Frequency', ascending=False).head(31)
+
+# Generate a list of colors based on the 'Frequency' value
+num_unique_freqs = top_genes['Frequency'].nunique()
+palette = sns.color_palette("Spectral", num_unique_freqs)
+
+# Map each frequency to a color
+freq_to_color = {freq: color for freq, color in zip(sorted(top_genes['Frequency'].unique()), palette)}
+
+# Apply the mapping to assign a color to each row in the df
+top_genes['Color'] = top_genes['Frequency'].map(freq_to_color)
+
+# Create the scatter plot with manual color assignment
+plt.figure(figsize=(15, 8))
+for _, row in top_genes.iterrows():
+    plt.scatter(row['Target Gene'], row['Frequency'], color=row['Color'], label=row['Target Gene'])
+
+# Set the y-axis to start from 20 with increments of 5
+y_ticks = np.arange(0, top_genes['Frequency'].max() + 5, 5)
+plt.yticks(y_ticks)
+
+# Remove the x-axis labels
+plt.xticks([])
+
+# Create custom legend handles
+legend_handles = [mpatches.Patch(color=freq_to_color[freq], label=primer) 
+                  for freq, primer in zip(top_genes['Frequency'], top_genes['Target Gene'])]
+
+# Create the legend, placing it outside of the plot to the right
+plt.legend(handles=legend_handles, title='Target Genes', bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+
+plt.title('Top 30 Most Found Target Genes')
+plt.ylabel('Frequency')
+plt.tight_layout()
+plt.savefig('target_genes.png', bbox_inches='tight')
+plt.close()
+
+# Plotting the heatmap
+plt.figure(figsize=(12, 10))
+sns.heatmap(pivot_table, annot=True, cmap='Paired')
+plt.title('Heatmap of Primer Combinations Leading to Correct Target Genes')
+plt.xticks([])  # Remove x-axis labels
+plt.yticks([])  # Remove y-axis labels
+plt.ylabel('Forward Primer Identifier')
+plt.xlabel('Reverse Primer Identifier')
+plt.savefig('heatmap.png')
+plt.close()
+
+## Apply for individual assembly
+## Path to the parent directory containing all your 'SRR' directories
+# parent_directory = '.'
+
+# all_df_product_counts = []
+
+# # Loop through each directory in the parent directory
+# for directory in os.listdir(parent_directory):
+#     if directory.startswith('SRR'):
+#         # Construct the full path to the result file in the directory
+#         file_path = os.path.join(parent_directory, directory, 'final_report.csv')
+        
+#         # Check if the file exists to avoid errors
+#         if os.path.exists(file_path):
+#             # Read the file into a df
+#             report = pd.read_csv(file_path)
+
+#             # Count the number of products found by both program and ABR
+#             num_gene = report[report['_merge'] == 'both'].shape[0]
+
+#             # Count the number of products only found by the program
+#             num_left_only = report[report['_merge'] == 'left_only'].shape[0]
+
+#             # Count the number of products only found by ABR (w or w/o primers)
+#             num_unavai_primer = report[(report['_merge'] == 'right_only') & (report['Reason'] == 'Primer not available')].shape[0]
+#             num_miss = report[(report['_merge'] == 'right_only') & (report['Reason'] != 'Primer not available')].shape[0]
+
+#             # Store counts in a dictionary
+#             product_counts = {
+#                 'Category': ['Both', 'Program Only', 'ABR Only (primers available)', 'ABR Only (primers not available)'],
+#                 'Count': [num_gene, num_left_only, num_miss, num_unavai_primer]
+#             }
+
+#             # Convert dictionary to df
+#             df_product_counts = pd.DataFrame(product_counts) 
+
+#             # Add the sample name (directory name) as a column
+#             df_product_counts['Sample'] = directory
+
+#             # Add the df to the list
+#             all_df_product_counts.append(df_product_counts)
+
+# # Concatenate all dfs in the list into one df
+# final_df_product_counts = pd.concat(all_df_product_counts)
+
+# # Reset index of the final df
+# final_df_product_counts.reset_index(drop=True, inplace=True)
+
+# # print(final_df_product_counts)
+# # Create a pivot table for the stacked bar chart
+# pivot_df = final_df_product_counts.pivot(index='Sample', columns='Category', values='Count')
+
+# # Increase the figure size for better visibility
+# plt.figure(figsize=(14, 8))  # You can adjust this size as needed
+
+# # Plot stacked bar chart
+# pivot_df.plot(kind='bar', stacked=True, figsize=(14, 8))  
+
+# # Title and labels
+# # plt.title('Stacked Bar Chart of Categories per Sample')
+# plt.xlabel('Samples')
+# plt.ylabel('Counts')
+
+# # Rotate x-axis labels to prevent overlap and improve readability
+# plt.xticks(rotation=90)  # Rotate by 90 degrees
+
+# # Move the legend outside of the plot to the right side
+# plt.legend(title='Category', bbox_to_anchor=(1, 1), loc='upper left')
+
+# # Adjust layout to make room for the x-axis labels and the legend
+# plt.tight_layout(rect=[0, 0, 0.75, 1])  # You might need to tweak these values
+
+# plt.savefig('barchart.png')
+# plt.close()
+print(f"\n", file=output_file)
+print("Figure saved as 'product_count.png' showing the comparison of product found in each category.", file=output_file)
+print("Figure saved as 'target_frq.png' showing the bar plot of target genes countss.", file=output_file)
+print("Figure saved as 'target_genes.png' showing top 30 target genes found.", file=output_file)
+print("Figure saved as 'heatmap.png' showing the primer combinations leading to correct target genes.", file=output_file)
+output_file.close()
 

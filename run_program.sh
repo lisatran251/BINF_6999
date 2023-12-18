@@ -14,7 +14,6 @@ primer_file=$2  # Primer file
 chunk_size=$3   # Number of sequences per chunk
 email_address=$4 # Email address of person who run this script
 
-
 # Fixed variables
 chunk_prefix="chunk"
 output_dir="chunks"  # Directory to store chunks
@@ -41,7 +40,7 @@ do
 
     # Run the job and save the job id
     job_id=$(sbatch --parsable --account=def-nricker \
-    --time=0-08:00 \
+    --time=0-00:10 \
     --nodes=1 \
     --ntasks-per-node=1 \
     --mem=1G \
@@ -60,7 +59,7 @@ job_ids=${job_ids%:}
 # Run second script after all chunks have been processed
 job_id_process2=$(sbatch --parsable --account=def-nricker \
 --dependency=afterok:$job_ids \
---time=0-04:00 \
+--time=0-00:10 \
 --nodes=1 \
 --ntasks-per-node=1 \
 --mem=1G \
@@ -69,23 +68,46 @@ job_id_process2=$(sbatch --parsable --account=def-nricker \
 --wrap="source ~/my_venv/bin/activate && python3 process2.py \"$primer_file\" raw_results.csv")
 
 # Run third script after the second one is completed 
-sbatch --account=def-nricker \
+job_id_process3=$(sbatch --parsable --account=def-nricker \
 --dependency=afterok:$job_id_process2 \
---time=0-04:00 \
+--time=0-00:10 \
 --nodes=1 \
 --ntasks-per-node=1 \
 --mem=1G \
 --job-name=process3 \
 --output=$result_dir/process_final_results_%j.out \
---wrap="source ~/my_venv/bin/activate && python3 process3.py \"$email_address\" \"$input_file\" \"$primer_file\" final_result.csv"
+--wrap="source ~/my_venv/bin/activate && python3 process3.py \"$email_address\" \"$input_file\" \"$primer_file\" final_result.csv")
 
-# Run third script after the second one is completed 
+# Run fourth script after the third one is completed 
 sbatch --account=def-nricker \
 --dependency=afterok:$job_id_process3 \
---time=0-04:00 \
+--time=0-00:10 \
 --nodes=1 \
 --ntasks-per-node=1 \
 --mem=1G \
 --job-name=process4 \
 --output=$result_dir/process_final_results_%j.out \
---wrap="source ~/my_venv/bin/activate && python3 process3.py \"$email_address\" \"$input_file\" \"$primer_file\" final_result.csv"
+--wrap="source ~/my_venv/bin/activate && python3 process4.py final_report.csv \"$primer_file\""
+
+# # Run third script after the second one is completed 
+# sbatch --account=def-nricker \
+# --dependency=afterok:$job_id_process2 \
+# --time=0-00:10 \
+# --nodes=1 \
+# --ntasks-per-node=1 \
+# --mem=1G \
+# --job-name=process3 \
+# --output=$result_dir/process_final_results_%j.out \
+# --wrap="source ~/my_venv/bin/activate && python3 process3.py \"$email_address\" \"$input_file\" \"$primer_file\" final_result.csv"
+
+# # Run third script after the second one is completed 
+# sbatch --account=def-nricker \
+# --dependency=afterok:$job_id_process3 \
+# --time=0-00:10 \
+# --nodes=1 \
+# --ntasks-per-node=1 \
+# --mem=1G \
+# --job-name=process4 \
+# --output=$result_dir/process_final_results_%j.out \
+# --wrap="source ~/my_venv/bin/activate && python3 process4.py final_report.csv \"$primer_file\""
+
