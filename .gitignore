@@ -13,3 +13,4 @@ assembly/*
 *png
 slurm*
 *out
+!testing.fasta
