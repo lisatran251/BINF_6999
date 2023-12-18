@@ -69,15 +69,21 @@ This script was developed to analyze AMGs in contig FASTA files using both ABRic
 7. Scenario 3 - Genes Found Only by ABRicate: To identify the reasons why ABRicate found genes that the program did not, a 'Reason' column was created in the ABRicate-only DataFrame. If the gene name was available in the original primer file, the 'Reason' column was filled with 'Mismatches'; otherwise, it was filled with 'Primers not available'. Contigs associated with genes found only by ABRicate were extracted into a new FASTA file named 'abricate_only.fasta'. Primers were then run against these contigs using the BLAST command in Unix to detect potential mismatches and alignment with the extracted contigs.
 
 ## Citation
+Achard, A., Villers, C., Pichereau, V., & Leclercq, R. (2005). New lnu (C) Gene Conferring Resistance to Lincomycin by Nucleotidylation in Streptococcus agalactiae UCN36. Antimicrobial Agents and Chemotherapy, 49(7), 2716–2719. https://doi.org/10.1128/AAC.49.7.2716-2719.2005
+Amini, F., Krimpour, H. A., Ghaderi, M., Vaziri, S., Ferdowsi, S., Azizi, M., & Amini, S. (2018). Prevalence of Aminoglycoside Resistance Genes in Enterococcus Strains in Kermanshah, Iran. Iranian Journal of Medical Sciences, 43(5), 487–493.
+Block M, & Blanchard DL. (2023). StatPearls. StatPearls.
+Chen, S., Zhou, Y., Chen, Y., & Gu, J. (2018). fastp: an ultra-fast all-in-one FASTQ preprocessor. Bioinformatics, 34(17), i884–i890. https://doi.org/10.1093/bioinformatics/bty560
 Christaki, E., Marcou, M., & Tofarides, A. (2020). Antimicrobial Resistance in Bacteria: Mechanisms, Evolution, and Persistence. Journal of Molecular Evolution, 88(1), 26–40. https://doi.org/10.1007/s00239-019-09914-3
-
+Flasche, S., & Atkins, K. E. (2018). Balancing Benefits and Risks of Antibiotic Use. The Journal of Infectious Diseases, 218(9), 1351–1353. https://doi.org/10.1093/infdis/jiy344
+Green, K. D., Punetha, A., Hou, C., Garneau-Tsodikova, S., & Tsodikov, O. V. (2019). Probing the Robustness of Inhibitors of Tuberculosis Aminoglycoside Resistance Enzyme Eis by Mutagenesis. ACS Infectious Diseases, 5(10), 1772–1778. https://doi.org/10.1021/acsinfecdis.9b00228
 Harbarth, S., Balkhy, H. H., Goossens, H., Jarlier, V., Kluytmans, J., Laxminarayan, R., Saam, M., Van Belkum, A., & Pittet, D. (2015). Antimicrobial resistance: one world, one fight! Antimicrobial Resistance and Infection Control, 4(1), 49. https://doi.org/10.1186/s13756-015-0091-2
-
+Holman, D. B., Gzyl, K. E., & Kommadath, A. (2023). The gut microbiome and resistome of conventionally vs. pasture-raised pigs. Microbial Genomics, 9(7). https://doi.org/10.1099/mgen.0.001061
+Li, D., Liu, C.-M., Luo, R., Sadakane, K., & Lam, T.-W. (2015). MEGAHIT: an ultra-fast single-node solution for large and complex metagenomics assembly via succinct de Bruijn graph. Bioinformatics, 31(10), 1674–1676. https://doi.org/10.1093/bioinformatics/btv033
 Seemann T. (2023). Abricate. Github. https://github.com/tseemann/abricate
-
 Smith, S. D., Choi, J., Ricker, N., Yang, F., Hinsa-Leasure, S., Soupir, M. L., Allen, H. K., & Howe, A. (2022). Diversity of Antibiotic Resistance genes and Transfer Elements-Quantitative Monitoring (DARTE-QM): a method for detection of antimicrobial resistance in environmental samples. Communications Biology, 5(1), 216. https://doi.org/10.1038/s42003-022-03155-9
-
+Sydenham, T. V., Overballe-Petersen, S., Hasman, H., Wexler, H., Kemp, M., & Justesen, U. S. (2019). Complete hybrid genome assembly of clinical multidrug-resistant Bacteroides fragilis isolates enables comprehensive identification of antimicrobial-resistance genes and plasmids. Microbial Genomics, 5(11). https://doi.org/10.1099/mgen.0.000312
+Tang, K. W. K., Millar, B. C., & Moore, J. E. (2023). Antimicrobial Resistance (AMR). British Journal of Biomedical Science, 80. https://doi.org/10.3389/bjbs.2023.11387
+UZUN, B., GÜNGÖR, S., PEKTAŞ, B., AKSOY GÖKMEN, A., YULA, E., KOÇAL, F., & KAYA, S. (2014). Macrolide-Lincosamide-Streptogramin B (MLSB) Resistance Phenotypes in Clinical Staphylococcus Isolates and Investigation of Telithromycin Activity. Mikrobiyoloji Bulteni, 48(3), 469–476. https://doi.org/10.5578/mb.7748
+Velazquez-Meza, M. E., Galarde-López, M., Carrillo-Quiróz, B., & Alpuche-Aranda, C. M. (2022). Antimicrobial resistance: One Health approach. Veterinary World, 743–749. https://doi.org/10.14202/vetworld.2022.743-749
 Zankari, E., Hasman, H., Cosentino, S., Vestergaard, M., Rasmussen, S., Lund, O., Aarestrup, F. M., & Larsen, M. V. (2012). Identification of acquired antimicrobial resistance genes. Journal of Antimicrobial Chemotherapy, 67(11), 2640–2644. https://doi.org/10.1093/jac/dks261
-
-## Author
-Lisa Thuy Duyen Tran | thuyduye@uoguelph.ca
+Zhan, Y., Liu, Y., Lin, J., Fu, X., Zhuang, C., Liu, L., Xu, W., Li, J., Chen, M., Zhao, G., Huang, W., & Cai, Z. (2015). Synthetic Tet-inducible artificial microRNAs targeting β-catenin or HIF-1α inhibit malignant phenotypes of bladder cancer cells T24 and 5637. Scientific Reports, 5(1), 16177. https://doi.org/10.1038/srep16177
