@@ -20,8 +20,8 @@ from Bio.SeqRecord import SeqRecord
 # python3 -m venv ~/my_venv
 # source ~/my_venv/bin/activate
 # pip install pandas numpy biopython matplotlib
-# python3 process4.py co-assembly_result_file primer_file
-# e.g: python3 process4.py combined_final_report.csv DARTE_primer.csv
+# python3 process4.py final_report_file primer_file
+# e.g: python3 process4.py final_report.csv DARTE-QM_primer_design.csv
 
 # Set the display.max_rows option to print all rows 
 pd.set_option('display.max_rows', None)
@@ -37,6 +37,7 @@ report = pd.read_csv(result)
 primer = sys.argv[2]
 ori_primer = pd.read_csv(primer)
 
+output_file = open('analysis_result.txt', 'w')
 ## Apply this for multiple individual assemblies
 ## Prepare an empty DataFrame to hold all combined data
 # report = pd.DataFrame()
@@ -67,10 +68,12 @@ ori_primer = pd.read_csv(primer)
 
 # Now proceed with the rest of your operations
 report = report.drop('originalCONTIG', axis=1)
-report.rename(columns={report.columns[20]: 'Location'}, inplace=True)
+# report.rename(columns={report.columns[20]: 'Location'}, inplace=True)
 # report.to_csv('short_combined_final_report.csv', index=False)
 report_for_plot = report.copy()
-# print(report.head())
+
+# Write a .txt file results
+output_file = open('analysis_result.txt', 'w')
 
 # Count total products found 
 total_products = len(report.index)
@@ -95,20 +98,13 @@ counts = [num_gene, num_left_only, num_unavai_primer, num_miss]
 plt.figure(figsize=(10, 6))
 plt.bar(categories, counts, color=['blue', 'green', 'red', 'orange'])
 
-# Adding titles and labels
-plt.title('Comparison of Product Findings')
-plt.xlabel('Category')
-plt.ylabel('Number of Products')
-plt.savefig('hist.png')
-plt.close()
-
 # print the result
-print(f"\nSummarization")
-print(f"Number of products found: {total_products}")
-print(f"Number of target genes found (both program and ABR): {num_gene}")
-print(f"Number of products found only by the program: {num_left_only}")
-print(f"Number of products found only by the ABR (primers available): {num_miss}")
-print(f"Number of products found only by the ABR (primers not available: {num_unavai_primer}\n")
+print(f"Analysis Summarization", file=output_file)
+print(f"Number of products found: {total_products}", file=output_file)
+print(f"Number of target genes found (both program and ABR): {num_gene}", file=output_file)
+print(f"Number of products found only by the program: {num_left_only}", file=output_file)
+print(f"Number of products found only by the ABR (primers available): {num_miss}", file=output_file)
+print(f"Number of products found only by the ABR (primers not available): {num_unavai_primer}\n", file=output_file)
 
 # Concatenate the values from F_primer and R_primer columns, excluding the header row
 info = pd.concat([report['F_primer'][1:], report['R_primer'][1:]])
@@ -119,7 +115,7 @@ primer_freq_df = primer_freq.reset_index()
 
 # Print primers found and their counts
 primer_freq_df.columns = ['Primer', 'Frequency']
-print(primer_freq_df)
+print(primer_freq_df, file=output_file)
 # primer_freq_df.to_csv('primer_freq_df.csv', index=False)
 
 # Combine 'F_truseq' and 'R_truseq' columns
@@ -132,12 +128,12 @@ primer_freq_set = set(primer_freq_df['Primer'])
 not_found_primers = [primer for primer in combined_primers if primer not in primer_freq_set]
 
 # Print the number of primers not found and the primers themselves
-print(f"Number of primers not found: {len(not_found_primers)}")
+print(f"\nNumber of primers not found: {len(not_found_primers)}", file=output_file)
 
 # Join the primers into a single string separated by commas
 primers_string = ', '.join(not_found_primers)
-print("Primers not found:")
-print(primers_string)
+print("Unfound primers:", file=output_file)
+print(primers_string, file=output_file)
 
 # Count the frequency of each primer in F_primer and R_primer columns
 f_primer_freq = report['F_primer'].value_counts().reset_index()
@@ -148,22 +144,17 @@ r_primer_freq.columns = ['Primer', 'R_Frequency']
 
 # For comparison
 primer_freq_combined = pd.merge(f_primer_freq, r_primer_freq, on='Primer', how='outer')
-print(primer_freq_combined)
+print(f"\n", file=output_file)
+print(primer_freq_combined, file=output_file)
 
 # Count the frequency of each target gene
 target_freq = report['Gene Check'].value_counts()
 target_freq_df = target_freq.reset_index()
+print(f"\n", file=output_file)
 target_freq_df.columns = ['Target Gene', 'Frequency']
 
 # Print target genes and their frequencies
-print(target_freq_df)
-
-# plt.hist(target_freq_df['Frequency'], bins=15, color='skyblue', edgecolor='black')
-# plt.title('Histogram of ARG Distribution')
-# plt.xlabel('Value')
-# plt.ylabel('Frequency')
-# plt.savefig('hist.png')
-# plt.close()
+print(target_freq_df, file=output_file)
 
 # Visualization 
 # Store counts in a dictionary
@@ -178,8 +169,8 @@ df_product_counts = pd.DataFrame(product_counts)
 # Plotting the product counts
 plt.figure(figsize=(15, 10))  # Increase figure width as needed
 plt.bar(categories, counts, color=['blue', 'green', 'red', 'orange'])
-# plt.title('Comparison of Product Findings')
-# plt.xlabel('Category')
+plt.title('Comparison of Product Findings')
+plt.xlabel('Category')
 plt.ylabel('Counts')
 plt.savefig('product_count.png')
 plt.close()  
@@ -197,37 +188,9 @@ filtered_data = report[report['Location'] == 'found in both program and ABR']
 # Create a pivot table
 pivot_table = pd.pivot_table(filtered_data, values='Record ID', 
                              index='F_primer_id', columns='R_primer_id', 
-                             aggfunc='count', fill_value=0)
+                             aggfunc='count', fill_value=0)  
 
-# Plotting the heatmap
-plt.figure(figsize=(12, 10))
-sns.heatmap(pivot_table, annot=True, cmap='Paired')
-# plt.title('Heatmap of Primer Combinations Leading to Correct Target Genes')
-plt.xticks([])  # Remove x-axis labels
-plt.yticks([])  # Remove y-axis labels
-plt.ylabel('Forward Primer Identifier')
-plt.xlabel('Reverse Primer Identifier')
-plt.savefig('heatmap.png')
-plt.close()  
-
-# plt.figure(figsize=(20, 20))  # Adjust figure size to be larger for better clarity
-# sns.heatmap(pivot_table, annot=False, cmap='Paired')
-# plt.title('Heatmap of Primer Combinations Leading to Correct Target Genes')
-# plt.xticks([])  # Remove x-axis labels
-# plt.yticks([])  # Remove y-axis labels
-# plt.tight_layout()  # Adjust layout to fit everything without overlapping
-# plt.savefig('heatmap_no_labels.png', dpi=300, format='png')
-# plt.close()
-
-primer_freq_combined.fillna(0, inplace=True)
-
-# Scatter Plot
-plt.scatter(primer_freq_combined['F_Frequency'], primer_freq_combined['R_Frequency'])
-plt.xlabel('F_Primer Frequency')
-plt.ylabel('R_Primer Frequency')
-plt.title('Scatter Plot of Primer Frequencies')
-plt.savefig('fr_primer_frq.png')
-plt.close()  
+primer_freq_combined.fillna(0, inplace=True) 
 
 # Plotting a bar plot with counts as the x-axis
 plt.figure(figsize=(10, 6))
@@ -238,16 +201,15 @@ plt.xticks([])
 # Labels and title
 plt.xlabel('Target Genes')
 plt.ylabel('Counts')
-# plt.title('Bar Plot of Target Gene Counts')
+plt.title('Bar Plot of Target Gene Counts')
 plt.savefig('target_frq.png')
 plt.close() 
 
 # Assuming combined_df is your DataFrame
-gene_counts = report.groupby(['Gene Check', 'Sample']).size().unstack(fill_value=0)
+# gene_counts = report.groupby(['Gene Check', 'Sample']).size().unstack(fill_value=0)
 
 # Sort the DataFrame to get the top 30 primers by frequency
 top_genes = target_freq_df.sort_values(by='Frequency', ascending=False).head(31)
-# print(top_primers)
 
 # Generate a list of colors based on the 'Frequency' value
 num_unique_freqs = top_genes['Frequency'].nunique()
@@ -278,13 +240,24 @@ legend_handles = [mpatches.Patch(color=freq_to_color[freq], label=primer)
 # Create the legend, placing it outside of the plot to the right
 plt.legend(handles=legend_handles, title='Target Genes', bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
 
-# plt.title('Top 30 Most Found Target Genes')
+plt.title('Top 30 Most Found Target Genes')
 plt.ylabel('Frequency')
 plt.tight_layout()
 plt.savefig('target_genes.png', bbox_inches='tight')
 plt.close()
 
-## Only apply for individual assembly
+# Plotting the heatmap
+plt.figure(figsize=(12, 10))
+sns.heatmap(pivot_table, annot=True, cmap='Paired')
+plt.title('Heatmap of Primer Combinations Leading to Correct Target Genes')
+plt.xticks([])  # Remove x-axis labels
+plt.yticks([])  # Remove y-axis labels
+plt.ylabel('Forward Primer Identifier')
+plt.xlabel('Reverse Primer Identifier')
+plt.savefig('heatmap.png')
+plt.close()
+
+## Apply for individual assembly
 ## Path to the parent directory containing all your 'SRR' directories
 # parent_directory = '.'
 
@@ -358,4 +331,14 @@ plt.close()
 
 # plt.savefig('barchart.png')
 # plt.close()
+print(f"\n", file=output_file)
+print("Figure saved as 'product_count.png' showing the comparison of product found in each category.", file=output_file)
+print("Figure saved as 'target_frq.png' showing the bar plot of target genes countss.", file=output_file)
+print("Figure saved as 'target_genes.png' showing top 30 target genes found.", file=output_file)
+print("Figure saved as 'heatmap.png' showing the primer combinations leading to correct target genes.", file=output_file)
+output_file.close()
+
+
+# Write first 500 results from sample dataset into a FASTA file for testing purposes 
+# awk -F, 'NR>1 {print ">"$1"\n"$8}' combined_final_report.csv | head -n1000 > testing.fasta 
 
