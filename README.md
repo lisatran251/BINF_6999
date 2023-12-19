@@ -62,7 +62,7 @@ The purpose of this script is to analyze primer-targeted DNA sequences, identify
 ### 'process3.py': 
 This script automates the process of gene identification and sequence analysis including ABRicate integration, sequence fetching from NCBI, gene name processing, scenario-based analysis and BLAST analysis. The script was executed separately using the command:
 ```python3 process3.py email_address original_fasta_file primer_file result_file```
-1. Run ABRicate at 10% Coverage: Processes the contig FASTA file using ABRicate and prepares results for further analysis.
+1. Run ABRicate at 80% Coverage: Processes the contig FASTA file using ABRicate and prepares results for further analysis.
 2. Data Preparation and Cleaning: Loads primer and result data, and cleans it for processing. This includes mapping original contig sequences and filtering results.
 3. Gene Name Conversion: Applies functions to standardize gene names across different datasets for accurate comparison.
 4. Data Merging: Merges program results with ABRicate findings, applying logic to handle various scenarios and identify genes found by both or exclusively by one method.
