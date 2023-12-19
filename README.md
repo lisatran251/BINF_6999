@@ -88,9 +88,13 @@ This script is designed for analyzing and visualizing genomic data, specifically
     - Exports various plots as image files for visual insights.
 5. Output Files
 product_count.png: Bar chart showing the comparison of product findings in each category.
+
 target_frq.png: Bar plot of target gene counts.
+
 target_genes.png: Scatter plot showing the top 30 target genes found.
+
 heatmap.png: Heatmap of primer combinations leading to correct target genes.
+
 analysis_result.txt: A comprehensive text file including all analysis summaries and references to the figures.
 
 ## Citation
