@@ -16,7 +16,7 @@ from Bio.SeqRecord import SeqRecord
 # source ~/my_venv/bin/activate
 # pip install pandas numpy biopython
 # python3 process3.py email_address original_fasta_file primer_file result_file 
-# e.g: python3 process3.py lisaa.tran2501@gmail.com *trimmed.contigs.fa DARTE-QM_primer_design.csv final_result.csv 
+# e.g: python3 process3.py lisaa.tran2501@gmail.com testing.fasta DARTE-QM_primer_design.csv final_result.csv 
 
 # Set the display.max_rows option to print all rows 
 pd.set_option('display.max_rows', None)
@@ -448,6 +448,30 @@ final_df.to_csv('final_report.csv', index=False)
 #############################################################################################################
 
 # Apply for individual assemblies
+# find . -type d -name 'SRR*' -exec sh -c 'find "$0" -name "final_report.csv" -print0 | xargs -0 awk "{print}"' {} \; > combined_final_report.csv
+# find . -type d -name 'SRR*' -exec sh -c 'find "$0" -name "abricate_only_report.csv" -print0 | xargs -0 awk "{print}"' {} \; > combined_abricate_only_report.csv
+
+# Create copies of the dataframes
+df1_detailed_copy = merged_program_ab[merged_program_ab['_merge'] == 'both'].copy()
+df2_detailed_copy = merged_program_ab[merged_program_ab['_merge'] == 'left_only'].copy()
+df3_detailed_copy = abricate_only.copy()
+df3_filtered_detailed_copy = df3_detailed_copy[df3_detailed_copy['Reason'] != 'Check Report']
+
+# Add the 'extra note' column to each copy without specifying a name
+df1_detailed_copy["Location"] = 'found in both program and ABR'
+df2_detailed_copy["Location"] = 'only found in program'
+df3_filtered_detailed_copy["Location"] = 'only found in ABR'
+df["Location"] = 'only found in ABR'
+
+# Append the dfs 
+final_detailed_df = df1_detailed_copy.append(df2_detailed_copy).append(df3_filtered_detailed_copy).append(df).reset_index(drop=True)
+
+
+# merged_df.to_csv('draft.csv', index=False)
+final_detailed_df.drop(columns=['originalCONTIG'], inplace=True)
+final_detailed_df.to_csv('detailed_final_report.csv', index=False)
+
+
 # find . -type d -name 'SRR*' -exec sh -c 'find "$0" -name "final_report.csv" -print0 | xargs -0 awk "{print}"' {} \; > combined_final_report.csv
 # find . -type d -name 'SRR*' -exec sh -c 'find "$0" -name "abricate_only_report.csv" -print0 | xargs -0 awk "{print}"' {} \; > combined_abricate_only_report.csv
 
